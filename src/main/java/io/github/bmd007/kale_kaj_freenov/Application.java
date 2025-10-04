@@ -1,5 +1,8 @@
 package io.github.bmd007.kale_kaj_freenov;
 
+import com.hopding.jrpicam.RPiCamera;
+import com.hopding.jrpicam.enums.Exposure;
+import com.hopding.jrpicam.exceptions.FailedToRunRaspistillException;
 import com.pi4j.Pi4J;
 import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;
@@ -13,6 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.nio.file.Files;
 
 
 @RestController
@@ -31,9 +37,9 @@ public class Application {
     private final I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
     private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("PCA9685").bus(I2C_BUS).device(PCA9685_ADDR).build();
     private final I2C pca9685;
-    private final Camera camera = new Camera();
+    RPiCamera piCamera = new RPiCamera("/home/pi/freenov-kale-kaj/tmp");
 
-    public Application() throws InterruptedException {
+    public Application() throws InterruptedException, FailedToRunRaspistillException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
         pca9685.writeRegister(MODE1, (byte) 0x00);
         int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
@@ -43,6 +49,14 @@ public class Application {
         Thread.sleep(1);
         pca9685.writeRegister(MODE1, (byte) 0xA1);
         this.pca9685 = pca9685;
+
+        piCamera.setWidth(500).setHeight(500) // Set Camera to produce 500x500 images.
+            .setBrightness(75)                // Adjust Camera's brightness setting.
+            .setExposure(Exposure.AUTO)       // Set Camera's exposure.
+            .setTimeout(2)                    // Set Camera's timeout.
+            .setAddRawBayer(true);            // Add Raw Bayer data to image files created by Camera.
+// Sets all Camera options to their default settings, overriding any changes previously made.
+        piCamera.setToDefaults();
     }
 
     public static void main(String[] args) {
@@ -52,23 +66,8 @@ public class Application {
     }
 
     @GetMapping(value = "/camera", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<byte[]> getCameraImage() {
-        try {
-            var config = Camera.newPictureConfigBuilder()
-                .outputPath("/home/pi/freenov-kale-kaj/tmp")
-                .delay(3000)
-                .disablePreview(true)
-                .encoding(Camera.PicEncoding.PNG)
-                .useDate(true)
-                .quality(93)
-                .width(1280)
-                .height(800)
-                .build();
-            camera.recordPicture(config);
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(null);
-        }
+    public byte[] getCameraImage() throws IOException, InterruptedException {
+        return Files.readAllBytes(piCamera.takeStill("An Awesome Pic.jpg").toPath());
     }
 
     @GetMapping("/move")
