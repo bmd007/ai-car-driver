@@ -1,4 +1,15 @@
-package io.github.bmd007.kale_kaj_freenov;
+/// usr/bin/env jbang "$0" "$@" ; exit $?
+///
+//REPOS central, maven-central=https://repo.maven.apache.org/maven2/
+//MAIN Application
+//DEPS com.pi4j:pi4j-core:3.0.1
+//DEPS com.pi4j:pi4j-plugin-gpiod:3.0.1
+//DEPS com.pi4j:pi4j-plugin-linuxfs:3.0.1
+//DEPS com.pi4j:pi4j-plugin-raspberrypi:3.0.1
+//DEPS org.springframework.boot:spring-boot-starter-web:3.5.6@pom
+//JAVA 23
+//FILES application.yaml
+///
 
 import com.pi4j.Pi4J;
 import com.pi4j.context.Context;

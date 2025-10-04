@@ -1,0 +1,7 @@
+spring.application.name: kale-kaj-freenov
+server:
+  address: 192.168.1.165
+  port: 8080
+spring:
+  main:
+    banner-mode: off
