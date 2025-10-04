@@ -3,6 +3,7 @@
 PASSWORD="$1"
 JAR_PATH="kale-kaj.jar"
 DEST="pi@192.168.1.165:/home/pi/freenov-kale-kaj"
+REMOTE_JAR_PATH="/home/pi/freenov-kale-kaj/kale-kaj.jar"
 
 if [ -z "$PASSWORD" ]; then
   echo "Usage: $0 <ssh_password>"
@@ -32,3 +33,9 @@ sshpass -p "$PASSWORD" scp "$JAR_PATH" "$DEST" || {
 }
 
 echo "JAR successfully copied to Raspberry Pi."
+
+echo "Starting application on Raspberry Pi..."
+sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "java -jar $REMOTE_JAR_PATH" || {
+  echo "Error: Failed to start Java application."
+  exit 6
+}

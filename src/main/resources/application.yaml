@@ -5,6 +5,3 @@ server:
 spring:
   main:
     banner-mode: off
-logging:
-  level:
-    root: WARN

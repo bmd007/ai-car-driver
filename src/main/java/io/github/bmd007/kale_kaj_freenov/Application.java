@@ -1,8 +1,5 @@
 package io.github.bmd007.kale_kaj_freenov;
 
-import com.hopding.jrpicam.RPiCamera;
-import com.hopding.jrpicam.enums.Exposure;
-import com.hopding.jrpicam.exceptions.FailedToRunRaspistillException;
 import com.pi4j.Pi4J;
 import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;
@@ -42,8 +39,6 @@ public class Application {
     private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("PCA9685").bus(I2C_BUS).device(PCA9685_ADDR).build();
     private final I2C pca9685;
 
-    RPiCamera piCamera = new RPiCamera(PICS_DIRECTORY);
-    // Simple capture
     RpiCamStill camera = new RpiCamStill()
         .setOutputDir(PICS_DIRECTORY)
         .setDimensions(600, 800)
@@ -51,7 +46,7 @@ public class Application {
         .setEncoding("jpg")
         .setQuality(95);
 
-    public Application() throws InterruptedException, FailedToRunRaspistillException {
+    public Application() throws InterruptedException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
         pca9685.writeRegister(MODE1, (byte) 0x00);
         int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
@@ -61,13 +56,6 @@ public class Application {
         Thread.sleep(1);
         pca9685.writeRegister(MODE1, (byte) 0xA1);
         this.pca9685 = pca9685;
-
-        piCamera.setWidth(500)
-            .setHeight(500) // Set Camera to produce 500x500 images.
-            .setBrightness(75)                // Adjust Camera's brightness setting.
-            .setExposure(Exposure.AUTO)       // Set Camera's exposure.
-            .setTimeout(2)// Set Camera's timeout.
-            .setAddRawBayer(true);            // Add Raw Bayer data to image files created by Camera.
     }
 
     public static void main(String[] args) {
@@ -76,30 +64,9 @@ public class Application {
         app.run(args);
     }
 
-    @GetMapping(value = "/camera2")
-    public ResponseEntity<byte[]> getCameraImage2() throws IOException, InterruptedException {
-        File file = camera.captureStill(UUID.randomUUID() + ".jpg");
-        String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        String disposition = "attachment";
-        try {
-            String detectedType = Files.probeContentType(file.toPath());
-            if (detectedType != null) {
-                contentType = detectedType;
-                if (contentType.startsWith("image/") || contentType.startsWith("video/")) {
-                    disposition = "inline";
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + file.getName() + "\"")
-            .contentType(MediaType.parseMediaType(contentType))
-            .body(Files.readAllBytes(file.toPath()));
-    }
-
     @GetMapping(value = "/camera")
-    public ResponseEntity<byte[]> getCameraImage() throws IOException, InterruptedException {
-        var file = piCamera.takeStill(UUID.randomUUID() + ".jpg");
+    public ResponseEntity<byte[]> getCameraImage2() throws IOException {
+        File file = camera.captureStill(UUID.randomUUID() + ".jpg");
         String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
         String disposition = "attachment";
         try {

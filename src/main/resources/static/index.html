@@ -38,7 +38,7 @@
         }
 
         function takePicture() {
-            fetch(`/camera2`, { method: 'GET' })
+            fetch(`/camera`, { method: 'GET' })
                 .then(res => {
                     if (res.ok) {
                         // alert('Picture taken!');
