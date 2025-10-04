@@ -70,9 +70,8 @@ public class Application {
     }
 
     @GetMapping(value = "/camera", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<Resource> getCameraImage() throws IOException, InterruptedException {
+    public ResponseEntity<byte[]> getCameraImage() throws IOException, InterruptedException {
         var file = piCamera.takeStill(UUID.randomUUID().toString());
-        var resource = new FileSystemResource(file);
         String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
         String disposition = "attachment";
         try {
@@ -88,7 +87,7 @@ public class Application {
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + file.getName() + "\"")
             .contentType(MediaType.parseMediaType(contentType))
-            .body(resource);
+            .body(Files.readAllBytes(file.toPath()));
     }
 
     @GetMapping("/move")
