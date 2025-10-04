@@ -1,0 +1,13 @@
+[Unit]
+Description=Freenov Kale Kaj Robot Java Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/bin/java -jar /home/pi/freenov-kale-kaj/kale-kaj.jar
+WorkingDirectory=/home/pi/freenov-kale-kaj
+#Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
