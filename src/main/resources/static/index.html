@@ -7,13 +7,13 @@
         .joystick {
             display: flex;
             flex-direction: column;
-            align-items: start;
+            align-items: center;
             margin: 20px;
         }
 
         .row {
             display: flex;
-            justify-content: cneter;
+            justify-content: center;
         }
 
         .btn {
@@ -40,8 +40,14 @@
     </style>
 </head>
 <body>
-<h2>Robot Joystick Control</h2>
+
+
+
 <div class="joystick">
+    <div id="video-frame" style="margin-left: 30px; border: 8px solid green; padding: 4px; background: #eaffea;">
+        <img id="video-stream" src="/video-stream" style="max-width: 400px; max-height: 400px;" alt="Live Video Stream">
+    </div>
+
     <div class="row">
         <button class="btn" onclick="move('FORWARD')">&#8593;</button>
     </div>
@@ -53,11 +59,12 @@
         <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
     </div>
 </div>
-<div id="latest-picture-frame">
-    <img id="latest-picture" src="" alt="Latest picture">
+
+<div id="latest-picture-frame" style="display: none;">
+    <img id="latest-picture" src="" alt="Latest picture" style="display: none;">
 </div>
-<button onclick="takePicture()">Take Picture</button>
-<div id="pictures">
+<div id="pictures" style="display: none;">
+    <button onclick="takePicture()">Take Picture</button>
     <h3>Taken Pictures</h3>
     <div id="picture-list"></div>
 </div>
@@ -68,31 +75,31 @@
             .catch(() => alert('Failed to send move command'));
     }
 
-    function takePicture() {
-        fetch('/camera', {method: 'GET'})
-            .then(res => res.text())
-            .then(path => {
-                const img = document.getElementById('latest-picture');
-                img.src = path;
-                img.style.display = 'inline-block';
-                loadPictures();
-            })
-            .catch(() => alert('Network error'));
-    }
+    // function takePicture() {
+    //     fetch('/image', {method: 'GET'})
+    //         .then(res => res.text())
+    //         .then(path => {
+    //             const img = document.getElementById('latest-picture');
+    //             img.src = path;
+    //             img.style.display = 'inline-block';
+    //             loadPictures();
+    //         })
+    //         .catch(() => alert('Network error'));
+    // }
 
-    function loadPictures() {
-        fetch('/files')
-            .then(res => res.json())
-            .then(links => {
-                const list = document.getElementById('picture-list');
-                list.innerHTML = '';
-                links.forEach(fileName => {
-                    list.innerHTML += `<a href="/files/${fileName}" target="_blank">${fileName}</a><br>`;
-                });
-            });
-    }
+    // function loadPictures() {
+    //     fetch('/files')
+    //         .then(res => res.json())
+    //         .then(links => {
+    //             const list = document.getElementById('picture-list');
+    //             list.innerHTML = '';
+    //             links.forEach(fileName => {
+    //                 list.innerHTML += `<a href="/files/${fileName}" target="_blank">${fileName}</a><br>`;
+    //             });
+    //         });
+    // }
 
-    window.onload = loadPictures;
+    // window.onload = loadPictures;
 </script>
 </body>
 </html>

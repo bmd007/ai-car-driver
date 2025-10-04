@@ -8,13 +8,18 @@ import com.pi4j.io.i2c.I2CProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.UUID;
 
 
@@ -36,12 +41,19 @@ public class Application {
     private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("PCA9685").bus(I2C_BUS).device(PCA9685_ADDR).build();
     private final I2C pca9685;
 
-    RpiCamStill camera = new RpiCamStill()
+    RpiCamStill photoCamera = new RpiCamStill()
         .setOutputDir(PICS_DIRECTORY)
         .setDimensions(600, 800)
-        .setTimeout(1000)
+        .setTimeout(100)
         .setEncoding("jpg")
         .setQuality(95);
+
+    private final RpiCamVid videoCamera = new RpiCamVid()
+        .setDimensions(400, 400)
+        .setTimeout(Integer.MAX_VALUE)
+        .setEncoding("mjpeg")
+        .setFramerate(24)
+        .setVerbose(true);
 
     public Application() throws InterruptedException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
@@ -57,41 +69,106 @@ public class Application {
 
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(Application.class);
-        app.setWebApplicationType(WebApplicationType.SERVLET);
+        app.setWebApplicationType(WebApplicationType.REACTIVE);
         app.run(args);
     }
 
-    @GetMapping(value = "/camera")
-    public String getCameraImage() throws IOException {
-        File file = camera.captureStill(UUID.randomUUID() + ".jpg");
-        return "http://192.168.1.165:8080/files/" + file.getName();
+    @GetMapping(value = "/video-stream", produces = "multipart/x-mixed-replace; boundary=frame")
+    public Flux<byte[]> streamVideoMjpeg() {
+        if (!RpiCamVid.isAvailable()) {
+            System.err.println("rpicam-vid not available or unsupported hardware version.");
+            return Flux.empty();
+        }
+        return Flux.create(sink -> {
+            try (InputStream videoStream = videoCamera.streamVideo()) {
+                byte[] buffer = new byte[1024 * 64];
+                ByteArrayOutputStream frameBuffer = new ByteArrayOutputStream();
+                int bytesRead;
+                boolean inFrame = false;
+                while ((bytesRead = videoStream.read(buffer)) != -1) {
+                    for (int i = 0; i < bytesRead; i++) {
+                        // MJPEG frames start with JPEG SOI (0xFFD8) and end with EOI (0xFFD9)
+                        if (!inFrame && buffer[i] == (byte) 0xFF && i + 1 < bytesRead && buffer[i + 1] == (byte) 0xD8) {
+                            frameBuffer.reset();
+                            inFrame = true;
+                        }
+                        if (inFrame) {
+                            frameBuffer.write(buffer[i]);
+                            if (buffer[i] == (byte) 0xFF && i + 1 < bytesRead && buffer[i + 1] == (byte) 0xD9) {
+                                frameBuffer.write(buffer[i + 1]);
+                                i++; // Skip next byte
+                                inFrame = false;
+                                byte[] imageBytes = frameBuffer.toByteArray();
+                                String header = "--frame\r\nContent-Type: image/jpeg\r\n\r\n";
+                                sink.next(header.getBytes());
+                                sink.next(imageBytes);
+                                sink.next("\r\n".getBytes());
+                                frameBuffer.reset();
+                            }
+                        }
+                    }
+                }
+                sink.complete();
+            } catch (Exception e) {
+                System.err.println("Video stream error: " + e.getMessage());
+                sink.complete();
+            }
+        }, FluxSink.OverflowStrategy.BUFFER);
+    }
+
+    @GetMapping(value = "/image-stream", produces = "multipart/x-mixed-replace; boundary=frame")
+    public Flux<byte[]> streamImagesMjpeg() {
+        if (!RpiCamVid.isAvailable()) {
+            System.err.println("rpicam-vid not available or unsupported hardware version.");
+            return Flux.empty();
+        }
+        return Flux.generate(sink -> {
+            try {
+                File frame = photoCamera.captureStill("stream.jpg");
+                byte[] imageBytes = Files.readAllBytes(frame.toPath());
+                String header = "--frame\r\nContent-Type: image/jpeg\r\n\r\n";
+                byte[] headerBytes = header.getBytes();
+                byte[] boundary = "\r\n".getBytes();
+                byte[] chunk = new byte[headerBytes.length + imageBytes.length + boundary.length];
+                System.arraycopy(headerBytes, 0, chunk, 0, headerBytes.length);
+                System.arraycopy(imageBytes, 0, chunk, headerBytes.length, imageBytes.length);
+                System.arraycopy(boundary, 0, chunk, headerBytes.length + imageBytes.length, boundary.length);
+                sink.next(chunk);
+            } catch (Exception e) {
+                sink.complete();
+            }
+        });
+    }
+
+    @GetMapping(value = "/image")
+    public Mono<String> getCameraImage() {
+        return photoCamera.captureStillAsync(UUID.randomUUID() + ".jpg")
+            .map(file -> "http://192.168.1.165:8080/files/" + file.getName());
     }
 
     @GetMapping("/move")
-    public ResponseEntity<String> move(@RequestParam String command) {
+    public String move(@RequestParam String command) {
         MovementCommand movement;
-        try {
-            movement = MovementCommand.valueOf(command.trim().toUpperCase());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid command");
-        }
+        movement = MovementCommand.valueOf(command.trim().toUpperCase());
         int[] duties = getDutiesForCommand(movement);
-        setMotorModel(duties[0], duties[1], duties[2], duties[3]);
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException a) {
-        }
-        setMotorModel(0, 0, 0, 0);
-        return ResponseEntity.ok("Moved " + movement.name().toLowerCase());
+        Mono.fromRunnable(() -> {
+            setMotorModel(duties[0], duties[1], duties[2], duties[3]);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            setMotorModel(0, 0, 0, 0);
+        }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+        return "Moved " + movement.name().toLowerCase();
     }
 
-    // Maps movement command to duty values for each wheel
     private int[] getDutiesForCommand(MovementCommand command) {
         return switch (command) {
-            case FORWARD -> new int[]{-2000, -2000, -2000, -2000};   // Use negative for forward
-            case BACKWARD -> new int[]{2000, 2000, 2000, 2000};      // Use positive for backward
-            case RIGHT -> new int[]{-2000, -2000, 2000, 2000};
-            case LEFT -> new int[]{2000, 2000, -2000, -2000};
+            case FORWARD -> new int[]{-1000, -1000, -1000, -1000};   // Use negative for forward
+            case BACKWARD -> new int[]{1000, 1000, 1000, 1000};      // Use positive for backward
+            case RIGHT -> new int[]{-1000, -1000, 1000, 1000};
+            case LEFT -> new int[]{1000, 1000, -1000, -1000};
         };
     }
 
