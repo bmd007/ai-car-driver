@@ -1,9 +1,9 @@
 #!/bin/bash
 
 PASSWORD="$1"
-JAR_PATH="kale-kaj.jar"
-DEST="pi@192.168.1.165:/home/pi/freenov-kale-kaj"
-REMOTE_JAR_PATH="/home/pi/freenov-kale-kaj/kale-kaj.jar"
+JAR_PATH="deployment/kale-kaj.jar"
+DEST="pi@192.168.1.165:/home/pi/freenov-kale-kaj/deployment"
+REMOTE_JAR_PATH="/home/pi/freenov-kale-kaj/deployment/kale-kaj.jar"
 
 if [ -z "$PASSWORD" ]; then
   echo "Usage: $0 <ssh_password>"
@@ -22,7 +22,7 @@ if [ ! -f "$JAR_PATH" ]; then
   exit 3
 fi
 
-sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "mkdir -p /home/pi/freenov-kale-kaj" || {
+sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "mkdir -p /home/pi/freenov-kale-kaj/deployment" || {
   echo "Error: Unable to connect to Raspberry Pi or create directory."
   exit 4
 }
@@ -33,22 +33,3 @@ sshpass -p "$PASSWORD" scp "$JAR_PATH" "$DEST" || {
 }
 
 echo "JAR successfully copied to Raspberry Pi."
-
-#echo "Locating Java installation..."
-#JAVA_PATH=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "
-#source ~/.bashrc ~/.profile /etc/profile 2>/dev/null || true
-#which java 2>/dev/null ||
-#find /usr/lib/jvm -name java -type f -executable 2>/dev/null | head -1 ||
-#find /usr/bin -name java -type f -executable 2>/dev/null | head -1 ||
-#echo 'java'
-#")
-#
-#echo "Using Java at: $JAVA_PATH"
-#echo "Starting application on Raspberry Pi..."
-#sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "
-#source ~/.bashrc ~/.profile /etc/profile 2>/dev/null || true
-#$JAVA_PATH -jar $REMOTE_JAR_PATH
-#" || {
-#  echo "Error: Failed to start Java application."
-#  exit 6
-#}
