@@ -76,8 +76,8 @@ public class Application {
         return switch (command) {
             case FORWARD -> new int[]{-2000, -2000, -2000, -2000};   // Use negative for forward
             case BACKWARD -> new int[]{2000, 2000, 2000, 2000};      // Use positive for backward
-            case LEFT -> new int[]{-2000, -2000, 2000, 2000};
-            case RIGHT -> new int[]{2000, 2000, -2000, -2000};
+            case RIGHT -> new int[]{-2000, -2000, 2000, 2000};
+            case LEFT -> new int[]{2000, 2000, -2000, -2000};
         };
     }
 
