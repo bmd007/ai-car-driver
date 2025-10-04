@@ -41,7 +41,7 @@ public class Application {
     private final I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
     private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("PCA9685").bus(I2C_BUS).device(PCA9685_ADDR).build();
     private final I2C pca9685;
-    RPiCamera piCamera = new RPiCamera("/home/pi/freenov-kale-kaj/tmp");
+    RPiCamera piCamera = new RPiCamera("/home/pi/freenov-kale-kaj/tmp/");
 
     public Application() throws InterruptedException, FailedToRunRaspistillException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
