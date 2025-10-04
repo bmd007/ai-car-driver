@@ -34,8 +34,21 @@ sshpass -p "$PASSWORD" scp "$JAR_PATH" "$DEST" || {
 
 echo "JAR successfully copied to Raspberry Pi."
 
-echo "Starting application on Raspberry Pi..."
-sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "java -jar $REMOTE_JAR_PATH" || {
-  echo "Error: Failed to start Java application."
-  exit 6
-}
+#echo "Locating Java installation..."
+#JAVA_PATH=$(sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "
+#source ~/.bashrc ~/.profile /etc/profile 2>/dev/null || true
+#which java 2>/dev/null ||
+#find /usr/lib/jvm -name java -type f -executable 2>/dev/null | head -1 ||
+#find /usr/bin -name java -type f -executable 2>/dev/null | head -1 ||
+#echo 'java'
+#")
+#
+#echo "Using Java at: $JAVA_PATH"
+#echo "Starting application on Raspberry Pi..."
+#sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "
+#source ~/.bashrc ~/.profile /etc/profile 2>/dev/null || true
+#$JAVA_PATH -jar $REMOTE_JAR_PATH
+#" || {
+#  echo "Error: Failed to start Java application."
+#  exit 6
+#}
