@@ -35,6 +35,6 @@ tasks.named('test') {
 }
 
 bootJar {
-    archiveFileName = 'kale-kaj.jar'
+    archiveFileName = 'fat-jar/kale-kaj.jar'
     destinationDirectory = file(rootDir)
 }
