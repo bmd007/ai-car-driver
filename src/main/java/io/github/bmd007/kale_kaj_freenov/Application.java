@@ -12,6 +12,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -69,7 +70,7 @@ public class Application {
     }
 
     @GetMapping(value = "/camera/{fileName}", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<FileSystemResource> getCameraImage(@PathVariable String fileName) throws IOException, InterruptedException {
+    public ResponseEntity<Resource> getCameraImage(@PathVariable String fileName) throws IOException, InterruptedException {
         var file = piCamera.takeStill(fileName);
         var resource = new FileSystemResource(file);
         String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
