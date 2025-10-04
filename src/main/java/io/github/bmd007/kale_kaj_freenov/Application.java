@@ -15,7 +15,7 @@ import org.springframework.context.event.EventListener;
 @SpringBootApplication
 public class Application {
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         SpringApplication app = new SpringApplication(Application.class);
         app.setWebApplicationType(WebApplicationType.REACTIVE);
         app.run(args);
