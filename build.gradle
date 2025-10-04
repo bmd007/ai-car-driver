@@ -34,6 +34,6 @@ tasks.named('test') {
 }
 
 bootJar {
-    archiveFileName = 'kale-kaj.jar'
+    archiveFileName = 'deployment/kale-kaj.jar'
     destinationDirectory = file(rootDir)
 }
