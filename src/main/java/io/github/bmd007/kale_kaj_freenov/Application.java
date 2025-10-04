@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RestController
 @SpringBootApplication
@@ -86,7 +84,7 @@ public class Application {
         setMotorModel(duties[0], duties[1], duties[2], duties[3]);
         try {
             Thread.sleep(1000);
-        } catch (InterruptedException _) {
+        } catch (InterruptedException a) {
         }
         setMotorModel(0, 0, 0, 0);
         return ResponseEntity.ok("Moved " + movement.name().toLowerCase());
