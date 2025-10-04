@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-ExecStart=/usr/bin/java -jar /home/pi/freenov-kale-kaj/kale-kaj.jar
-WorkingDirectory=/home/pi/freenov-kale-kaj
+ExecStart=/usr/bin/java -jar /home/pi/freenov-kale-kaj/deployment/kale-kaj.jar
+WorkingDirectory=/home/pi/freenov-kale-kaj/deployment
 #Restart=on-failure
 
 [Install]
