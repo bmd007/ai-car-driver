@@ -74,8 +74,8 @@ public class Application {
     // Maps movement command to duty values for each wheel
     private int[] getDutiesForCommand(MovementCommand command) {
         return switch (command) {
-            case FORWARD -> new int[]{2000, 2000, 2000, 2000};
-            case BACKWARD -> new int[]{-2000, -2000, -2000, -2000};
+            case FORWARD -> new int[]{-2000, -2000, -2000, -2000};   // Use negative for forward
+            case BACKWARD -> new int[]{2000, 2000, 2000, 2000};      // Use positive for backward
             case LEFT -> new int[]{-2000, -2000, 2000, 2000};
             case RIGHT -> new int[]{2000, 2000, -2000, -2000};
         };
