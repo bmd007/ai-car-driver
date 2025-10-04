@@ -150,8 +150,12 @@ public class RPiCamera {
 // 						"Desktop" + File.separator + "RPiCamera.out"));
 
         p = pb.start();
-        p.waitFor();
-        return new File(saveDir + File.separator + pictureName);
+        int exitCode = p.waitFor();
+        File outputFile = new File(saveDir + File.separator + pictureName);
+        if (exitCode != 0 || !outputFile.exists() || !outputFile.isFile()) {
+            throw new IOException("Failed to create image file: " + outputFile.getAbsolutePath());
+        }
+        return outputFile;
     }
 
     /**
