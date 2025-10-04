@@ -78,6 +78,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>io.github.bmd007.kale_kaj_freenov.Application</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>
