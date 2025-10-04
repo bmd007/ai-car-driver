@@ -8,10 +8,14 @@ import com.pi4j.io.i2c.I2CProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @RestController
 @SpringBootApplication
@@ -27,12 +31,9 @@ public class Application {
     private static final int MAX_DUTY = 4095;
 
     private final I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
-    private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j)
-        .id("PCA9685")
-        .bus(I2C_BUS)
-        .device(PCA9685_ADDR)
-        .build();
+    private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("PCA9685").bus(I2C_BUS).device(PCA9685_ADDR).build();
     private final I2C pca9685;
+    private final Camera camera = new Camera();
 
     public Application() throws InterruptedException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
@@ -52,6 +53,27 @@ public class Application {
         app.run(args);
     }
 
+
+    @GetMapping(value = "/camera", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<byte[]> getCameraImage() {
+        try {
+            var config = Camera.newPictureConfigBuilder()
+                .outputPath("/home/pi/freenov-kale-kaj/tmp")
+                .delay(3000)
+                .disablePreview(true)
+                .encoding(Camera.PicEncoding.PNG)
+                .useDate(true)
+                .quality(93)
+                .width(1280)
+                .height(800)
+                .build();
+            camera.recordPicture(config);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
     @GetMapping("/move")
     public ResponseEntity<String> move(@RequestParam String command) {
         MovementCommand movement;
@@ -64,7 +86,7 @@ public class Application {
         setMotorModel(duties[0], duties[1], duties[2], duties[3]);
         try {
             Thread.sleep(1000);
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException _) {
         }
         setMotorModel(0, 0, 0, 0);
         return ResponseEntity.ok("Moved " + movement.name().toLowerCase());
