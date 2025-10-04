@@ -58,15 +58,23 @@ public class Application {
 
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
+        moveMotor(pca9685, 0, 2000, 4000);
+    }
 
+    private void moveMotor(I2C pca9685, int channel, int speed, int durationMs) {
+        setPwm(pca9685, channel, 0, speed);
+        setPwm(pca9685, channel, 2, speed);
+        try {
+            Thread.sleep(durationMs);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        setPwm(pca9685, channel, 0, 0);
     }
 
     @GetMapping("/move")
     public ResponseEntity<String> move(@RequestParam String command) {
-        var movement = MovementCommand.fromString(command);
-        if (movement == null) {
-            return ResponseEntity.badRequest().body("Invalid command");
-        }
+        var movement = MovementCommand.valueOf(command.trim().toUpperCase());
         try (pca9685) {
             int[] pwm = getPwmForCommand(movement);
             for (int i = 0; i < 4; i++) {
@@ -101,14 +109,5 @@ public class Application {
 
     public enum MovementCommand {
         FORWARD, BACKWARD, LEFT, RIGHT;
-
-        public static MovementCommand fromString(String command) {
-            if (command == null) return null;
-            try {
-                return MovementCommand.valueOf(command.trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                return null;
-            }
-        }
     }
 }
