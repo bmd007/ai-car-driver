@@ -8,8 +8,6 @@ import com.pi4j.io.i2c.I2CProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.UUID;
 
 
@@ -65,24 +62,9 @@ public class Application {
     }
 
     @GetMapping(value = "/camera")
-    public ResponseEntity<byte[]> getCameraImage2() throws IOException {
+    public String getCameraImage() throws IOException {
         File file = camera.captureStill(UUID.randomUUID() + ".jpg");
-        String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        String disposition = "attachment";
-        try {
-            String detectedType = Files.probeContentType(file.toPath());
-            if (detectedType != null) {
-                contentType = detectedType;
-                if (contentType.startsWith("image/") || contentType.startsWith("video/")) {
-                    disposition = "inline";
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + file.getName() + "\"")
-            .contentType(MediaType.parseMediaType(contentType))
-            .body(Files.readAllBytes(file.toPath()));
+        return "http://192.168.1.165:8080/files/" + file.getName();
     }
 
     @GetMapping("/move")

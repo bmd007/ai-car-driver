@@ -4,64 +4,95 @@
     <meta charset="UTF-8">
     <title>Freenov Kale Kaj Robot Control</title>
     <style>
-        .joystick { display: flex; flex-direction: column; align-items: center; margin: 20px; }
-        .row { display: flex; justify-content: center; }
-        .btn { width: 60px; height: 60px; margin: 5px; font-size: 24px; }
-        #pictures { margin-top: 30px; }
+        .joystick {
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+            margin: 20px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: cneter;
+        }
+
+        .btn {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            font-size: 24px;
+        }
+
+        #pictures {
+            margin-top: 30px;
+        }
+
+        #latest-picture-frame {
+            margin-bottom: 15px;
+            text-align: start;
+        }
+
+        #latest-picture {
+            max-width: 520px;
+            max-height: 530px;
+            border: 10px solid red;
+        }
     </style>
 </head>
 <body>
-    <h2>Robot Joystick Control</h2>
-    <div class="joystick">
-        <div class="row">
-            <button class="btn" onclick="move('FORWARD')">&#8593;</button>
-        </div>
-        <div class="row">
-            <button class="btn" onclick="move('LEFT')">&#8592;</button>
-            <button class="btn" onclick="move('RIGHT')">&#8594;</button>
-        </div>
-        <div class="row">
-            <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
-        </div>
+<h2>Robot Joystick Control</h2>
+<div class="joystick">
+    <div class="row">
+        <button class="btn" onclick="move('FORWARD')">&#8593;</button>
     </div>
-    <button onclick="takePicture()">Take Picture</button>
-    <div id="pictures">
-        <h3>Taken Pictures</h3>
-        <div id="picture-list"></div>
+    <div class="row">
+        <button class="btn" onclick="move('LEFT')">&#8592;</button>
+        <button class="btn" onclick="move('RIGHT')">&#8594;</button>
     </div>
-    <script>
-        function move(direction) {
-            fetch(`/move?command=${direction}`, { method: 'GET' })
-                .then(res => res.text())
-                // .then(msg => alert(msg))
-                .catch(() => alert('Failed to send move command'));
-        }
+    <div class="row">
+        <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
+    </div>
+</div>
+<div id="latest-picture-frame">
+    <img id="latest-picture" src="" alt="Latest picture">
+</div>
+<button onclick="takePicture()">Take Picture</button>
+<div id="pictures">
+    <h3>Taken Pictures</h3>
+    <div id="picture-list"></div>
+</div>
+<script>
+    function move(direction) {
+        fetch(`/move?command=${direction}`, {method: 'GET'})
+            .then(res => res.text())
+            .catch(() => alert('Failed to send move command'));
+    }
 
-        function takePicture() {
-            fetch(`/camera`, { method: 'GET' })
-                .then(res => {
-                    if (res.ok) {
-                        // alert('Picture taken!');
-                        loadPictures();
-                    } else {
-                        alert('Failed to take picture');
-                    }
+    function takePicture() {
+        fetch('/camera', {method: 'GET'})
+            .then(res => res.text())
+            .then(path => {
+                const img = document.getElementById('latest-picture');
+                img.src = path;
+                img.style.display = 'inline-block';
+                loadPictures();
+            })
+            .catch(() => alert('Network error'));
+    }
+
+    function loadPictures() {
+        fetch('/files')
+            .then(res => res.json())
+            .then(links => {
+                const list = document.getElementById('picture-list');
+                list.innerHTML = '';
+                links.forEach(fileName => {
+                    list.innerHTML += `<a href="/files/${fileName}" target="_blank">${fileName}</a><br>`;
                 });
-        }
+            });
+    }
 
-        function loadPictures() {
-            fetch('/files')
-                .then(res => res.json())
-                .then(links => {
-                    const list = document.getElementById('picture-list');
-                    list.innerHTML = '';
-                    links.forEach(fileName => {
-                        list.innerHTML += `<a href="/files/${fileName}" target="_blank">${fileName}</a><br>`;
-                    });
-                });
-        }
-
-        window.onload = loadPictures;
-    </script>
+    window.onload = loadPictures;
+</script>
 </body>
 </html>
