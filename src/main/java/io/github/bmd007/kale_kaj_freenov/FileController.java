@@ -29,6 +29,8 @@ public class FileController {
         List<String> files = Arrays.stream(dir.listFiles())
             .filter(File::isFile)
             .map(File::getName)
+            .map(a -> "http://192.168.1.165:8080/files/" + a)
+            .map(a -> "<a href=\"" + a + "\">" + a + "</a>")
             .collect(Collectors.toList());
         return ResponseEntity.ok(files);
     }
