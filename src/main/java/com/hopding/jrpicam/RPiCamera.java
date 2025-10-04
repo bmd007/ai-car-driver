@@ -126,7 +126,7 @@ public class RPiCamera {
      */
     public File takeStill(String pictureName, int width, int height) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>();
-        command.add("raspistill");
+        command.add("rpicam-still");
         command.add("-o");
         command.add(saveDir + File.separator + pictureName);
         command.add("-w");
@@ -209,7 +209,7 @@ public class RPiCamera {
      */
     public BufferedImage takeBufferedStill(int width, int height) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>();
-        command.add("raspistill");
+        command.add("rpicam-still");
         command.add("-o");
         command.add("-v");
         command.add("-w");
@@ -510,7 +510,7 @@ public class RPiCamera {
             pictureName = "%04d" + pictureName;
 
         List<String> command = new ArrayList<>();
-        command.add("raspistill");
+        command.add("rpicam-still");
         command.add("-tl");
         command.add("" + time);
         command.add("-o");
@@ -574,7 +574,7 @@ public class RPiCamera {
 
 // 	public String getCameraSettings() {
 // 		List<String> command = new ArrayList<String>();
-// 		command.add("raspistill");
+// 		command.add("rpicam-still");
 // 		command.add("-set");
 // 		pb = new ProcessBuilder(command);
 // 		prevCommand = command.toString();
