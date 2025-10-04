@@ -20,10 +20,10 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
-    implementation 'com.pi4j:pi4j-core:3.0.1'
-    implementation 'com.pi4j:pi4j-plugin-raspberrypi:3.0.1'
-    implementation 'com.pi4j:pi4j-plugin-gpiod:3.0.1'
-    implementation 'com.pi4j:pi4j-plugin-linuxfs:3.0.1'
+    implementation 'com.pi4j:pi4j-core:2.7.0'
+    implementation 'com.pi4j:pi4j-plugin-raspberrypi:2.7.0'
+    implementation 'com.pi4j:pi4j-plugin-gpiod:2.7.0'
+    implementation 'com.pi4j:pi4j-plugin-linuxfs:2.7.0'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'

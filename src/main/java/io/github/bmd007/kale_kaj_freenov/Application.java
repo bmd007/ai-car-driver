@@ -51,7 +51,6 @@ public class Application {
         app.run(args);
     }
 
-
     @GetMapping(value = "/camera", produces = MediaType.IMAGE_JPEG_VALUE)
     public ResponseEntity<byte[]> getCameraImage() {
         try {
