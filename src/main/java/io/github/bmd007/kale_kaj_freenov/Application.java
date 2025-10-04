@@ -6,12 +6,9 @@ import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
-import com.pi4j.util.Console;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,13 +19,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class Application {
 
     private static final Context pi4j = Pi4J.newAutoContext();
-    private static final Console console = new Console();
     private static final int PCA9685_ADDR = 0x40;
     private static final int I2C_BUS = 1;
     private static final int MODE1 = 0x00;
     private static final int PRESCALE = 0xFE;
-    private static final int LED0_ON_L = 0x06;
     private static final int PWM_FREQ = 50;
+    private static final int LED0_ON_L = 0x06;
+    private static final int MAX_DUTY = 4095;
 
     private final I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
     private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j)
@@ -38,15 +35,15 @@ public class Application {
         .build();
     private final I2C pca9685;
 
-    public Application() throws Exception {
+    public Application() throws InterruptedException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
-        pca9685.writeRegister(MODE1, (byte) 0x00); // Wake up
+        pca9685.writeRegister(MODE1, (byte) 0x00);
         int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
-        pca9685.writeRegister(MODE1, (byte) 0x10); // Sleep
+        pca9685.writeRegister(MODE1, (byte) 0x10);
         pca9685.writeRegister(PRESCALE, (byte) prescale);
-        pca9685.writeRegister(MODE1, (byte) 0x00); // Wake
+        pca9685.writeRegister(MODE1, (byte) 0x00);
         Thread.sleep(1);
-        pca9685.writeRegister(MODE1, (byte) 0xA1); // Auto-increment
+        pca9685.writeRegister(MODE1, (byte) 0xA1);
         this.pca9685 = pca9685;
     }
 
@@ -56,57 +53,112 @@ public class Application {
         app.run(args);
     }
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void start() {
-        moveMotor(pca9685, 0, 2000, 4000);
-        moveMotor(pca9685, 1, 2000, 4000);
-        moveMotor(pca9685, 2, 2000, 4000);
-        moveMotor(pca9685, 3, 2000, 4000);
-    }
-
-    private void moveMotor(I2C pca9685, int channel, int speed, int durationMs) {
-        setPwm(pca9685, channel, 0, speed);
-        try {
-            Thread.sleep(durationMs);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        setPwm(pca9685, channel, 0, 0);
-    }
-
     @GetMapping("/move")
     public ResponseEntity<String> move(@RequestParam String command) {
-        var movement = MovementCommand.valueOf(command.trim().toUpperCase());
-        try (pca9685) {
-            int[] pwm = getPwmForCommand(movement);
-            for (int i = 0; i < 4; i++) {
-                setPwm(pca9685, i, 0, pwm[i]);
-            }
-            Thread.sleep(4000);
-            for (int i = 0; i < 4; i++) {
-                setPwm(pca9685, i, 0, 0);
-            }
-            return ResponseEntity.ok("Moved " + movement.name().toLowerCase());
+        MovementCommand movement;
+        try {
+            movement = MovementCommand.valueOf(command.trim().toUpperCase());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Hardware error: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Invalid command");
         }
+        int[] duties = getDutiesForCommand(movement);
+        setMotorModel(duties[0], duties[1], duties[2], duties[3]);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ignored) {
+        }
+        setMotorModel(0, 0, 0, 0);
+        return ResponseEntity.ok("Moved " + movement.name().toLowerCase());
     }
 
-    private void setPwm(I2C pca9685, int channel, int on, int off) {
-        int reg = LED0_ON_L + 4 * channel;
-        pca9685.writeRegister(reg, (byte) (on & 0xFF));
-        pca9685.writeRegister(reg + 1, (byte) ((on >> 8) & 0xFF));
-        pca9685.writeRegister(reg + 2, (byte) (off & 0xFF));
-        pca9685.writeRegister(reg + 3, (byte) ((off >> 8) & 0xFF));
-    }
-
-    private int[] getPwmForCommand(MovementCommand command) {
+    // Maps movement command to duty values for each wheel
+    private int[] getDutiesForCommand(MovementCommand command) {
         return switch (command) {
             case FORWARD -> new int[]{2000, 2000, 2000, 2000};
             case BACKWARD -> new int[]{-2000, -2000, -2000, -2000};
             case LEFT -> new int[]{-2000, -2000, 2000, 2000};
             case RIGHT -> new int[]{2000, 2000, -2000, -2000};
         };
+    }
+
+    // Sets all four wheels using the same logic as the Python code
+    private void setMotorModel(int duty1, int duty2, int duty3, int duty4) {
+        duty1 = clampDuty(duty1);
+        duty2 = clampDuty(duty2);
+        duty3 = clampDuty(duty3);
+        duty4 = clampDuty(duty4);
+        leftUpperWheel(duty1);
+        leftLowerWheel(duty2);
+        rightUpperWheel(duty3);
+        rightLowerWheel(duty4);
+    }
+
+    private int clampDuty(int duty) {
+        if (duty > MAX_DUTY) return MAX_DUTY;
+        if (duty < -MAX_DUTY) return -MAX_DUTY;
+        return duty;
+    }
+
+    // Each wheel uses two channels, set according to duty sign
+    private void leftUpperWheel(int duty) {
+        if (duty > 0) {
+            setMotorPwm(0, 0);
+            setMotorPwm(1, duty);
+        } else if (duty < 0) {
+            setMotorPwm(1, 0);
+            setMotorPwm(0, Math.abs(duty));
+        } else {
+            setMotorPwm(0, MAX_DUTY);
+            setMotorPwm(1, MAX_DUTY);
+        }
+    }
+
+    private void leftLowerWheel(int duty) {
+        if (duty > 0) {
+            setMotorPwm(3, 0);
+            setMotorPwm(2, duty);
+        } else if (duty < 0) {
+            setMotorPwm(2, 0);
+            setMotorPwm(3, Math.abs(duty));
+        } else {
+            setMotorPwm(2, MAX_DUTY);
+            setMotorPwm(3, MAX_DUTY);
+        }
+    }
+
+    private void rightUpperWheel(int duty) {
+        if (duty > 0) {
+            setMotorPwm(6, 0);
+            setMotorPwm(7, duty);
+        } else if (duty < 0) {
+            setMotorPwm(7, 0);
+            setMotorPwm(6, Math.abs(duty));
+        } else {
+            setMotorPwm(6, MAX_DUTY);
+            setMotorPwm(7, MAX_DUTY);
+        }
+    }
+
+    private void rightLowerWheel(int duty) {
+        if (duty > 0) {
+            setMotorPwm(4, 0);
+            setMotorPwm(5, duty);
+        } else if (duty < 0) {
+            setMotorPwm(5, 0);
+            setMotorPwm(4, Math.abs(duty));
+        } else {
+            setMotorPwm(4, MAX_DUTY);
+            setMotorPwm(5, MAX_DUTY);
+        }
+    }
+
+    // Set PWM for a single channel
+    private void setMotorPwm(int channel, int value) {
+        int reg = LED0_ON_L + 4 * channel;
+        pca9685.writeRegister(reg, (byte) 0); // ON time low byte
+        pca9685.writeRegister(reg + 1, (byte) 0); // ON time high byte
+        pca9685.writeRegister(reg + 2, (byte) (value & 0xFF)); // OFF time low byte
+        pca9685.writeRegister(reg + 3, (byte) ((value >> 8) & 0xFF)); // OFF time high byte
     }
 
     public enum MovementCommand {
