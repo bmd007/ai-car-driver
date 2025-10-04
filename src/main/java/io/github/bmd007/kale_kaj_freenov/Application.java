@@ -46,14 +46,15 @@ public class Application {
         .setDimensions(600, 800)
         .setTimeout(100)
         .setEncoding("jpg")
-        .setQuality(95);
+        .setQuality(95)
+        .setVerbose(false);
 
     private final RpiCamVid videoCamera = new RpiCamVid()
         .setDimensions(400, 400)
         .setTimeout(Integer.MAX_VALUE)
         .setEncoding("mjpeg")
         .setFramerate(24)
-        .setVerbose(true);
+        .setVerbose(false);
 
     public Application() throws InterruptedException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
@@ -114,30 +115,6 @@ public class Application {
                 sink.complete();
             }
         }, FluxSink.OverflowStrategy.BUFFER);
-    }
-
-    @GetMapping(value = "/image-stream", produces = "multipart/x-mixed-replace; boundary=frame")
-    public Flux<byte[]> streamImagesMjpeg() {
-        if (!RpiCamVid.isAvailable()) {
-            System.err.println("rpicam-vid not available or unsupported hardware version.");
-            return Flux.empty();
-        }
-        return Flux.generate(sink -> {
-            try {
-                File frame = photoCamera.captureStill("stream.jpg");
-                byte[] imageBytes = Files.readAllBytes(frame.toPath());
-                String header = "--frame\r\nContent-Type: image/jpeg\r\n\r\n";
-                byte[] headerBytes = header.getBytes();
-                byte[] boundary = "\r\n".getBytes();
-                byte[] chunk = new byte[headerBytes.length + imageBytes.length + boundary.length];
-                System.arraycopy(headerBytes, 0, chunk, 0, headerBytes.length);
-                System.arraycopy(imageBytes, 0, chunk, headerBytes.length, imageBytes.length);
-                System.arraycopy(boundary, 0, chunk, headerBytes.length + imageBytes.length, boundary.length);
-                sink.next(chunk);
-            } catch (Exception e) {
-                sink.complete();
-            }
-        });
     }
 
     @GetMapping(value = "/image")
