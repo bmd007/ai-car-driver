@@ -125,14 +125,23 @@ public class RPiCamera {
      * @throws InterruptedException
      */
     public File takeStill(String pictureName, int width, int height) throws IOException, InterruptedException {
+        // Ensure save directory exists
+        File dir = new File(saveDir);
+        if (!dir.exists()) {
+            if (!dir.mkdirs()) {
+                throw new IOException("Failed to create save directory: " + saveDir);
+            }
+        }
+
+        // Build rpicam-still command
         List<String> command = new ArrayList<>();
         command.add("rpicam-still");
         command.add("-o");
         command.add(saveDir + File.separator + pictureName);
         command.add("-w");
-        command.add("" + width);
+        command.add(String.valueOf(width));
         command.add("-h");
-        command.add("" + height);
+        command.add(String.valueOf(height));
         for (Map.Entry<String, String[]> entry : options.entrySet()) {
             if (entry.getValue() != null &&
                 !"width".equals(entry.getKey()) &&
@@ -142,22 +151,17 @@ public class RPiCamera {
         }
         prevCommand = command.toString();
         pb = new ProcessBuilder(command);
-
-// 		System.out.println("Executed this command:\n\t" + command.toString());
- 		pb.redirectErrorStream(true);
-// 		pb.redirectOutput(
-// 				new File(System.getProperty("user.home") + File.separator +
-// 						"Desktop" + File.separator + "RPiCamera.out"));
+        pb.redirectErrorStream(true);
 
         p = pb.start();
         int exitCode = p.waitFor();
+
         File outputFile = new File(saveDir + File.separator + pictureName);
         if (exitCode != 0 || !outputFile.exists() || !outputFile.isFile()) {
             throw new IOException("Failed to create image file: " + outputFile.getAbsolutePath());
         }
         return outputFile;
     }
-
     /**
      * Takes an image and saves it under the specified name to the RPiCamera's save
      * directory ("/home/pi/Pictures" by default). The image's encoding will be the

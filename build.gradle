@@ -33,3 +33,8 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+bootJar {
+    archiveFileName = 'kale-kaj.jar'
+    destinationDirectory = file(rootDir)
+}
