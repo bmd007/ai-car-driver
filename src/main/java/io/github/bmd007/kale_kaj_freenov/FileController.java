@@ -1,7 +1,5 @@
 package io.github.bmd007.kale_kaj_freenov;
 
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
@@ -36,12 +35,11 @@ public class FileController {
     }
 
     @GetMapping("/files/{filename}")
-    public ResponseEntity<Resource> getFile(@PathVariable String filename) {
+    public ResponseEntity<byte[]> getFile(@PathVariable String filename) throws IOException {
         File file = new File(DIRECTORY, filename);
         if (!file.exists() || !file.isFile()) {
             return ResponseEntity.status(404).build();
         }
-        FileSystemResource resource = new FileSystemResource(file);
         String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
         String disposition = "attachment";
         try {
@@ -57,6 +55,6 @@ public class FileController {
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + file.getName() + "\"")
             .contentType(MediaType.parseMediaType(contentType))
-            .body(resource);
+            .body(Files.readAllBytes(file.toPath()));
     }
 }

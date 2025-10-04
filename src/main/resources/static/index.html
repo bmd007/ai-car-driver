@@ -33,7 +33,7 @@
         function move(direction) {
             fetch(`/move?command=${direction}`, { method: 'GET' })
                 .then(res => res.text())
-                .then(msg => alert(msg))
+                // .then(msg => alert(msg))
                 .catch(() => alert('Failed to send move command'));
         }
 
@@ -42,7 +42,7 @@
             fetch(`/camera/${fileName}`, { method: 'GET' })
                 .then(res => {
                     if (res.ok) {
-                        alert('Picture taken!');
+                        // alert('Picture taken!');
                         loadPictures();
                     } else {
                         alert('Failed to take picture');

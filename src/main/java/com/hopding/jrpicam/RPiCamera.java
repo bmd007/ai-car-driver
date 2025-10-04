@@ -144,7 +144,7 @@ public class RPiCamera {
         pb = new ProcessBuilder(command);
 
 // 		System.out.println("Executed this command:\n\t" + command.toString());
-// 		pb.redirectErrorStream(true);
+ 		pb.redirectErrorStream(true);
 // 		pb.redirectOutput(
 // 				new File(System.getProperty("user.home") + File.separator +
 // 						"Desktop" + File.separator + "RPiCamera.out"));

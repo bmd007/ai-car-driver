@@ -11,13 +11,10 @@ import com.pi4j.io.i2c.I2CProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -69,9 +66,9 @@ public class Application {
         app.run(args);
     }
 
-    @GetMapping(value = "/camera", produces = MediaType.IMAGE_JPEG_VALUE)
+    @GetMapping(value = "/camera")
     public ResponseEntity<byte[]> getCameraImage() throws IOException, InterruptedException {
-        var file = piCamera.takeStill(UUID.randomUUID().toString());
+        var file = piCamera.takeStill(UUID.randomUUID() + ".jpg");
         String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
         String disposition = "attachment";
         try {
