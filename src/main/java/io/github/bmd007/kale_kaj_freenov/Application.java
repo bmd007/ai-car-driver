@@ -11,9 +11,12 @@ import com.pi4j.io.i2c.I2CProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -65,9 +68,26 @@ public class Application {
         app.run(args);
     }
 
-    @GetMapping(value = "/camera", produces = MediaType.IMAGE_JPEG_VALUE)
-    public byte[] getCameraImage() throws IOException, InterruptedException {
-        return Files.readAllBytes(piCamera.takeStill("An Awesome Pic.jpg").toPath());
+    @GetMapping(value = "/camera/{fileName}", produces = MediaType.IMAGE_JPEG_VALUE)
+    public byte[] getCameraImage(@PathVariable String fileName) throws IOException, InterruptedException {
+        var file = piCamera.takeStill(fileName);
+        var resource = new FileSystemResource(file);
+        String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        String disposition = "attachment";
+        try {
+            String detectedType = Files.probeContentType(file.toPath());
+            if (detectedType != null) {
+                contentType = detectedType;
+                if (contentType.startsWith("image/") || contentType.startsWith("video/")) {
+                    disposition = "inline";
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + file.getName() + "\"")
+            .contentType(MediaType.parseMediaType(contentType))
+            .body(resource);
     }
 
     @GetMapping("/move")

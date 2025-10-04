@@ -18,7 +18,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
 
     implementation 'com.pi4j:pi4j-core:2.7.0'
     implementation 'com.pi4j:pi4j-plugin-raspberrypi:2.7.0'
