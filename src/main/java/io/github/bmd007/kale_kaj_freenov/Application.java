@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.UUID;
@@ -35,11 +36,20 @@ public class Application {
     private static final int PWM_FREQ = 50;
     private static final int LED0_ON_L = 0x06;
     private static final int MAX_DUTY = 4095;
+    public static final String PICS_DIRECTORY = "/home/pi/Pictures";
 
     private final I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
     private final I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("PCA9685").bus(I2C_BUS).device(PCA9685_ADDR).build();
     private final I2C pca9685;
-    RPiCamera piCamera = new RPiCamera("/home/pi/freenov-kale-kaj/tmp/");
+
+    RPiCamera piCamera = new RPiCamera(PICS_DIRECTORY);
+    // Simple capture
+    RpiCamStill camera = new RpiCamStill()
+        .setOutputDir(PICS_DIRECTORY)
+        .setDimensions(600, 800)
+        .setTimeout(1000)
+        .setEncoding("jpg")
+        .setQuality(95);
 
     public Application() throws InterruptedException, FailedToRunRaspistillException {
         I2C pca9685 = i2CProvider.create(i2cConfig);
@@ -64,6 +74,27 @@ public class Application {
         SpringApplication app = new SpringApplication(Application.class);
         app.setWebApplicationType(WebApplicationType.SERVLET);
         app.run(args);
+    }
+
+    @GetMapping(value = "/camera2")
+    public ResponseEntity<byte[]> getCameraImage2() throws IOException, InterruptedException {
+        File file = camera.captureStill(UUID.randomUUID() + ".jpg");
+        String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        String disposition = "attachment";
+        try {
+            String detectedType = Files.probeContentType(file.toPath());
+            if (detectedType != null) {
+                contentType = detectedType;
+                if (contentType.startsWith("image/") || contentType.startsWith("video/")) {
+                    disposition = "inline";
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + file.getName() + "\"")
+            .contentType(MediaType.parseMediaType(contentType))
+            .body(Files.readAllBytes(file.toPath()));
     }
 
     @GetMapping(value = "/camera")

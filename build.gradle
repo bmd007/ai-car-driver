@@ -24,7 +24,6 @@ dependencies {
     implementation 'com.pi4j:pi4j-plugin-raspberrypi:2.7.0'
     implementation 'com.pi4j:pi4j-plugin-gpiod:2.7.0'
     implementation 'com.pi4j:pi4j-plugin-linuxfs:2.7.0'
-
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -35,6 +34,6 @@ tasks.named('test') {
 }
 
 bootJar {
-    archiveFileName = 'fat-jar/kale-kaj.jar'
+    archiveFileName = 'kale-kaj.jar'
     destinationDirectory = file(rootDir)
 }

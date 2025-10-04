@@ -38,8 +38,7 @@
         }
 
         function takePicture() {
-            const fileName = `img_${Date.now()}.jpg`;
-            fetch(`/camera/${fileName}`, { method: 'GET' })
+            fetch(`/camera2`, { method: 'GET' })
                 .then(res => {
                     if (res.ok) {
                         // alert('Picture taken!');

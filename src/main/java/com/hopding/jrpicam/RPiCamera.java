@@ -132,15 +132,14 @@ public class RPiCamera {
                 throw new IOException("Failed to create save directory: " + saveDir);
             }
         }
-
         // Build rpicam-still command
         List<String> command = new ArrayList<>();
         command.add("rpicam-still");
         command.add("-o");
         command.add(saveDir + File.separator + pictureName);
-        command.add("-w");
+        command.add("--width");
         command.add(String.valueOf(width));
-        command.add("-h");
+        command.add("--height");
         command.add(String.valueOf(height));
         for (Map.Entry<String, String[]> entry : options.entrySet()) {
             if (entry.getValue() != null &&
@@ -154,6 +153,14 @@ public class RPiCamera {
         pb.redirectErrorStream(true);
 
         p = pb.start();
+        try (BufferedInputStream inputStream = new BufferedInputStream(p.getInputStream())) {
+            int b;
+            StringBuilder log = new StringBuilder();
+            while ((b = inputStream.read()) != -1) {
+                log.append((char) b);
+            }
+            System.out.println("Process log:\n" + log);
+        }
         int exitCode = p.waitFor();
 
         File outputFile = new File(saveDir + File.separator + pictureName);
@@ -162,6 +169,7 @@ public class RPiCamera {
         }
         return outputFile;
     }
+
     /**
      * Takes an image and saves it under the specified name to the RPiCamera's save
      * directory ("/home/pi/Pictures" by default). The image's encoding will be the
@@ -219,10 +227,9 @@ public class RPiCamera {
         List<String> command = new ArrayList<>();
         command.add("rpicam-still");
         command.add("-o");
-        command.add("-v");
-        command.add("-w");
+        command.add("--width ");
         command.add("" + width);
-        command.add("-h");
+        command.add("--height");
         command.add("" + height);
         for (Map.Entry<String, String[]> entry : options.entrySet()) {
             if (entry.getValue() != null &&
@@ -711,72 +718,52 @@ public class RPiCamera {
      * @param sharpness An int specifying the sharpness.
      */
     public RPiCamera setSharpness(int sharpness) {
-        if (sharpness > 100)
-            sharpness = 100;
-        else if (sharpness < -100)
-            sharpness = -100;
-        options.put("sharpness", new String[]{"-sh", "" + sharpness});
+        if (sharpness > 100) sharpness = 100;
+        else if (sharpness < -100) sharpness = -100;
+        options.put("sharpness", new String[]{"-sh", String.valueOf(sharpness)});
         return this;
     }
 
-    /**
-     * Sets contrast of image (-100 to 100), default value is 0. Contrast values lower
-     * than -100 will set contrast to -100, values greater than 100 will set contrast
-     * to 100.
-     *
-     * @param contrast An int specifying the contrast.
-     */
     public RPiCamera setContrast(int contrast) {
-        if (contrast > 100)
-            contrast = 100;
-        else if (contrast < -100)
-            contrast = -100;
-        options.put("constast", new String[]{"-co", "" + contrast});
+        if (contrast > 100) contrast = 100;
+        else if (contrast < -100) contrast = -100;
+        options.put("contrast", new String[]{"-co", String.valueOf(contrast)});
         return this;
     }
 
-    /**
-     * Sets brightness of image (0 to 100), default value is 50. 0 is black, 100 is white.
-     * Brightness values lower than 0 will set brightness to 0, values greater than 100 will
-     * set brightness to 100.
-     *
-     * @param brightness An int specifying the brightness.
-     */
     public RPiCamera setBrightness(int brightness) {
-        if (brightness > 100)
-            brightness = 100;
-        else if (brightness < 0)
-            brightness = 0;
-        options.put("brightness", new String[]{"-br", "" + brightness});
+        if (brightness > 100) brightness = 100;
+        else if (brightness < 0) brightness = 0;
+        options.put("brightness", new String[]{"-b", String.valueOf(brightness)});
         return this;
     }
 
-    /**
-     * Sets colour saturation of image (-100 to 100), default is 0. Saturation values lower
-     * than -100 will set saturation to -100, values greater than 100 will set saturation to
-     * 100.
-     *
-     * @param saturation An int specifying the saturation.
-     */
     public RPiCamera setSaturation(int saturation) {
-        if (saturation > 100)
-            saturation = 100;
-        else if (saturation < -100)
-            saturation = -100;
-        options.put("saturation", new String[]{"-sa", "" + saturation});
+        if (saturation > 100) saturation = 100;
+        else if (saturation < -100) saturation = -100;
+        options.put("saturation", new String[]{"-sa", String.valueOf(saturation)});
         return this;
     }
 
-    /**
-     * WARNING: OPERATION NOT YET SUPPORTED BY raspistill SOFTWARE. OPTION MAY STILL BE SET,
-     * BUT WILL HAVE NO EFFECT ON THE IMAGE UNTIL SUPPORT IS ADDED TO raspistill.<br>
-     * <br>
-     * Sets ISO of RPiCamera (100 to 800).
-     *
-     * @param iso An int specifying the ISO.
-     */
     public RPiCamera setISO(int iso) {
-        options.put("ISO", new String[]{"-ISO", "" + iso});
+        options.put("ISO", new String[]{"--ISO", String.valueOf(iso)});
+        return this;
+    }
+
+    public RPiCamera setWidth(int width) {
+        options.put("width", new String[]{"-w", String.valueOf(width)});
+        return this;
+    }
+
+    public RPiCamera setHeight(int height) {
+        options.put("height", new String[]{"-h", String.valueOf(height)});
+        return this;
+    }
+
+    public RPiCamera setQuality(int quality) {
+        if (quality > 100) quality = 100;
+        else if (quality < 0) quality = 0;
+        options.put("quality", new String[]{"-q", String.valueOf(quality)});
         return this;
     }
 
@@ -986,44 +973,6 @@ public class RPiCamera {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////// APPLICATION SPECIFIC SETTINGS //////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Sets width of images taken by RPiCamera. Note that this setting
-     * can be overriden by the {@link #takeStill(String, int, int)}  and {@link #takeBufferedStill(int, int)} methods.
-     *
-     * @param width An int specifying the width.
-     */
-    public RPiCamera setWidth(int width) {
-        options.put("width", new String[]{"-w", "" + width});
-        return this;
-    }
-
-    /**
-     * Sets height of images taken by the RPiCamera. Note that this settings
-     * can be overriden by the {@link #takeStill(String, int, int)}  and {@link #takeBufferedStill(int, int)} methods.
-     *
-     * @param height An int specifying the height.
-     */
-    public RPiCamera setHeight(int height) {
-        options.put("height", new String[]{"-h", "" + height});
-        return this;
-    }
-
-    /**
-     * Sets quality of image (0 to 100), 75 is recommended for usual
-     * purposes. Quality values lower than 0 will set quality to 0, values
-     * greater than 100 will set quality to 100.
-     *
-     * @param quality An int specifying the quality.
-     */
-    public RPiCamera setQuality(int quality) {
-        if (quality > 100)
-            quality = 100;
-        else if (quality < 0)
-            quality = 0;
-        options.put("quality", new String[]{"-q", "" + quality});
-        return this;
-    }
 
     /**
      * Appends raw Bayer data from the RPiCamera to the image's JPEG metadata.

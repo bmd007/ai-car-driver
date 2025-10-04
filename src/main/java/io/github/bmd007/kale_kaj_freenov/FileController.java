@@ -12,16 +12,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static io.github.bmd007.kale_kaj_freenov.Application.PICS_DIRECTORY;
 
 @RestController
 public class FileController {
 
-    private static final String DIRECTORY = "/home/pi/freenov-kale-kaj/tmp/";
-
     @GetMapping(value = "/files")
     public ResponseEntity<List<String>> listFiles() {
-        File dir = new File(DIRECTORY);
+        File dir = new File(PICS_DIRECTORY);
         if (!dir.exists() || !dir.isDirectory()) {
             return ResponseEntity.status(404).body(List.of());
         }
@@ -34,7 +33,7 @@ public class FileController {
 
     @GetMapping("/files/{filename}")
     public ResponseEntity<byte[]> getFile(@PathVariable String filename) throws IOException {
-        File file = new File(DIRECTORY, filename);
+        File file = new File(PICS_DIRECTORY, filename);
         if (!file.exists() || !file.isFile()) {
             return ResponseEntity.status(404).build();
         }
