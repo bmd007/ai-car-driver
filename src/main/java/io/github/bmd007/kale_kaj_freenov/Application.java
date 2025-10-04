@@ -60,8 +60,6 @@ public class Application {
             .setExposure(Exposure.AUTO)       // Set Camera's exposure.
             .setTimeout(2)// Set Camera's timeout.
             .setAddRawBayer(true);            // Add Raw Bayer data to image files created by Camera.
-// Sets all Camera options to their default settings, overriding any changes previously made.
-        piCamera.setToDefaults();
     }
 
     public static void main(String[] args) {
