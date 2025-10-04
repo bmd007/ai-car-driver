@@ -59,11 +59,13 @@ public class Application {
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
         moveMotor(pca9685, 0, 2000, 4000);
+        moveMotor(pca9685, 1, 2000, 4000);
+        moveMotor(pca9685, 2, 2000, 4000);
+        moveMotor(pca9685, 3, 2000, 4000);
     }
 
     private void moveMotor(I2C pca9685, int channel, int speed, int durationMs) {
         setPwm(pca9685, channel, 0, speed);
-        setPwm(pca9685, channel, 2, speed);
         try {
             Thread.sleep(durationMs);
         } catch (InterruptedException e) {
