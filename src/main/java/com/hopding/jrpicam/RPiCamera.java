@@ -14,7 +14,7 @@ import com.hopding.jrpicam.enums.Encoding;
 import com.hopding.jrpicam.enums.Exposure;
 import com.hopding.jrpicam.enums.ImageEffect;
 import com.hopding.jrpicam.enums.MeteringMode;
-import com.hopding.jrpicam.exceptions.FailedToRunrpicam-stillException;
+import com.hopding.jrpicam.exceptions.FailedToRunRaspistillException;
 
 /**
  * RPiCamera is used to access the Raspberry Pi Camera and take still photos.
@@ -23,9 +23,9 @@ import com.hopding.jrpicam.exceptions.FailedToRunrpicam-stillException;
  * image's encoding type (jpg, bmp, png, gif).
  * <p>
  * Although it provides additional features and support for Java specific operations,
- * RPiCamera is essentially a wrapper class for executing the rpicam-still software from
+ * RPiCamera is essentially a wrapper class for executing the raspistill software from
  * within a Java application. Thus it is essential that all Raspberry Pis using the JRPiCam
- * library have properly configured and working rpicam-still software.
+ * library have properly configured and working raspistill software.
  * <p>
  * Usage Example:
  * <pre>
@@ -58,9 +58,9 @@ public class RPiCamera {
 	/**
 	 * Creates new RPiCamera. The resulting RPiCamera's save directory will be set to
      * "/home/pi/Pictures" and will have a default image width and height of 500.
-	 * @throws FailedToRunrpicam-stillException
+	 * @throws FailedToRunRaspistillException
 	 */
-	public RPiCamera() throws FailedToRunrpicam-stillException {
+	public RPiCamera() throws FailedToRunRaspistillException {
 		this("/home/pi/Pictures");
 	}
 
@@ -69,20 +69,20 @@ public class RPiCamera {
      * default image width and height of 500.
 	 *
 	 * @param saveDir A String specifying the directory for RPiCamera to save images.
-	 * @throws FailedToRunrpicam-stillException
+	 * @throws FailedToRunRaspistillException
 	 */
-	public RPiCamera(String saveDir) throws FailedToRunrpicam-stillException {
+	public RPiCamera(String saveDir) throws FailedToRunRaspistillException {
 		this.saveDir = saveDir;
 		try {
 			pb = new ProcessBuilder("rpicam-still");
 			pb.start();
 		} catch (IOException e) {
-			// The IOException was most likely thrown because rpicam-still isn't installed
-			// and/or configured properly, so throw FailedToRunrpicam-stillException to
+			// The IOException was most likely thrown because raspistill isn't installed
+			// and/or configured properly, so throw FailedToRunRaspistillException to
 			// indicate that.
-			throw new FailedToRunrpicam-stillException(
-					"RPiCamera failed to run rpicam-still. The JRPiCam library relies on"
-							+ "rpicam-still to function. Please ensure it is installed and configured"
+			throw new FailedToRunRaspistillException(
+					"RPiCamera failed to run raspistill. The JRPiCam library relies on"
+							+ "raspistill to function. Please ensure it is installed and configured"
 							+ "on your system.");
 		}
 		//  Set default width and height of images
@@ -121,7 +121,7 @@ public class RPiCamera {
 	 */
 	public File takeStill(String pictureName, int width, int height) throws IOException, InterruptedException {
 		List<String> command = new ArrayList<>();
-		command.add("rpicam-still");
+		command.add("raspistill");
 		command.add("-o");
 		command.add(saveDir + File.separator + pictureName);
 		command.add("-w");
@@ -204,7 +204,7 @@ public class RPiCamera {
 	 */
 	public BufferedImage takeBufferedStill(int width, int height) throws IOException, InterruptedException {
 		List<String> command = new ArrayList<>();
-		command.add("rpicam-still");
+		command.add("raspistill");
 		command.add("-o");
 		command.add("-v");
 		command.add("-w");
@@ -504,7 +504,7 @@ public class RPiCamera {
 			pictureName = "%04d" + pictureName;
 
 		List<String> command = new ArrayList<>();
-		command.add("rpicam-still");
+		command.add("raspistill");
 		command.add("-tl");
 		command.add("" + time);
 		command.add("-o");
@@ -539,7 +539,7 @@ public class RPiCamera {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Stops any rpicam-still processes being run by RPiCamera.
+	 * Stops any raspistill processes being run by RPiCamera.
 	 */
 	public void stop() {
 		if (p != null)
@@ -547,7 +547,7 @@ public class RPiCamera {
 	}
 
 	/**
-	 * Gets the rpicam-still command previously executed by the RPiCamera. If no commands have
+	 * Gets the raspistill command previously executed by the RPiCamera. If no commands have
 	 * been executed, null will be returned.
 	 *
 	 * @return String containing command previously executed.
@@ -568,7 +568,7 @@ public class RPiCamera {
 
 // 	public String getCameraSettings() {
 // 		List<String> command = new ArrayList<String>();
-// 		command.add("rpicam-still");
+// 		command.add("raspistill");
 // 		command.add("-set");
 // 		pb = new ProcessBuilder(command);
 // 		prevCommand = command.toString();
@@ -754,8 +754,8 @@ public class RPiCamera {
 	}
 
 	/**
-	 * WARNING: OPERATION NOT YET SUPPORTED BY rpicam-still SOFTWARE. OPTION MAY STILL BE SET,
-	 * BUT WILL HAVE NO EFFECT ON THE IMAGE UNTIL SUPPORT IS ADDED TO rpicam-still.<br>
+	 * WARNING: OPERATION NOT YET SUPPORTED BY raspistill SOFTWARE. OPTION MAY STILL BE SET,
+	 * BUT WILL HAVE NO EFFECT ON THE IMAGE UNTIL SUPPORT IS ADDED TO raspistill.<br>
 	 * <br>
 	 * Sets ISO of RPiCamera (100 to 800).
 	 *
@@ -780,7 +780,7 @@ public class RPiCamera {
 
 	/**
 	 * Sets exposure mode of RPiCamera. Certain modes may not be supported
-	 * by rpicam-still software, depending on camera tuning.
+	 * by raspistill software, depending on camera tuning.
 	 *
 	 * @param exposure An Exposure enum specifying the desired mode.
 	 */
@@ -791,7 +791,7 @@ public class RPiCamera {
 
 	/**
 	 * Sets Automatic White Balance (AWB) mode. Certain modes may not
-	 * be supported by rpicam-still software, depending on camera type.
+	 * be supported by raspistill software, depending on camera type.
 	 *
 	 * @param awb An AWB enum specifying the desired AWB setting.
 	 */
@@ -802,7 +802,7 @@ public class RPiCamera {
 
 	/**
 	 * Sets an effect to be applied to image. Certain settings may not be
-	 * supported by rpicam-still software, depending on circumstances.
+	 * supported by raspistill software, depending on circumstances.
 	 *
 	 * @param imageEffect An ImageEffect enum specifying the desired effect.
 	 */
@@ -963,7 +963,7 @@ public class RPiCamera {
 
 	// TODO: MAKE METHOD FOR STEREOSCOPIC IMAGES
 
-	// TODO: MAKE METHOD FOR PREVIEW PARAMETER COMMANDS (Bottom of rpicam-still -? output)
+	// TODO: MAKE METHOD FOR PREVIEW PARAMETER COMMANDS (Bottom of raspistill -? output)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////// ENG OF IMAGE PARAMETER COMMANDS ////////////////////////////////////////////////
@@ -1115,7 +1115,7 @@ public class RPiCamera {
 	}
 
 	/**
-	 * Turns on burst mode for RPiCamera. Prevents rpicam-still from switching
+	 * Turns on burst mode for RPiCamera. Prevents raspistill from switching
 	 * between preview and capture modes, saving a few 100ms of time for each
 	 * capture.
 	 */
