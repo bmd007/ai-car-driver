@@ -19,7 +19,7 @@ public class FileController {
 
     private static final String DIRECTORY = "/home/pi/freenov-kale-kaj/tmp/";
 
-    @GetMapping(value = "/files", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = "/files")
     public ResponseEntity<List<String>> listFiles() {
         File dir = new File(DIRECTORY);
         if (!dir.exists() || !dir.isDirectory()) {
@@ -28,9 +28,7 @@ public class FileController {
         List<String> files = Arrays.stream(dir.listFiles())
             .filter(File::isFile)
             .map(File::getName)
-            .map(a -> "http://192.168.1.165:8080/files/" + a)
-            .map(a -> "<a href=\"" + a + "\">" + a + "/a> <br> </br>")
-            .collect(Collectors.toList());
+            .toList();
         return ResponseEntity.ok(files);
     }
 

@@ -56,10 +56,7 @@
                 .then(links => {
                     const list = document.getElementById('picture-list');
                     list.innerHTML = '';
-                    links.forEach(link => {
-                        // Extract file name for display
-                        const match = link.match(/\/files\/([^"]+)/);
-                        const fileName = match ? match[1] : link;
+                    links.forEach(fileName => {
                         list.innerHTML += `<a href="/files/${fileName}" target="_blank">${fileName}</a><br>`;
                     });
                 });
