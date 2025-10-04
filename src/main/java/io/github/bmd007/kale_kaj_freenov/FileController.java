@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @RestController
 public class FileController {
 
-    private static final String DIRECTORY = "/home/pi/freenov-kale-kaj/tmp";
+    private static final String DIRECTORY = "/home/pi/freenov-kale-kaj/tmp/";
 
     @GetMapping(value = "/files", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<List<String>> listFiles() {
