@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.UUID;
 
 
 @RestController
@@ -68,9 +69,9 @@ public class Application {
         app.run(args);
     }
 
-    @GetMapping(value = "/camera/{fileName}", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<Resource> getCameraImage(@PathVariable String fileName) throws IOException, InterruptedException {
-        var file = piCamera.takeStill(fileName);
+    @GetMapping(value = "/camera", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<Resource> getCameraImage() throws IOException, InterruptedException {
+        var file = piCamera.takeStill(UUID.randomUUID().toString());
         var resource = new FileSystemResource(file);
         String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
         String disposition = "attachment";

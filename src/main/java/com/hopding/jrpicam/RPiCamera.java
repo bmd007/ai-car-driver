@@ -178,8 +178,6 @@ public class RPiCamera {
      * @throws InterruptedException
      */
     public File takeStill(String pictureName) throws IOException, InterruptedException {
-        System.out.println("/n/n/n/options");
-        System.out.println(options);
         return takeStill(pictureName,
             Integer.parseInt(options.get("width")[1]),
             Integer.parseInt(options.get("height")[1]));
