@@ -69,7 +69,7 @@ public class Application {
     }
 
     @GetMapping(value = "/camera/{fileName}", produces = MediaType.IMAGE_JPEG_VALUE)
-    public byte[] getCameraImage(@PathVariable String fileName) throws IOException, InterruptedException {
+    public ResponseEntity<FileSystemResource> getCameraImage(@PathVariable String fileName) throws IOException, InterruptedException {
         var file = piCamera.takeStill(fileName);
         var resource = new FileSystemResource(file);
         String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
