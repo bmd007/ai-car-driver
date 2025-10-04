@@ -36,6 +36,19 @@ public class Application {
         .bus(I2C_BUS)
         .device(PCA9685_ADDR)
         .build();
+    private final I2C pca9685;
+
+    public Application() throws Exception {
+        I2C pca9685 = i2CProvider.create(i2cConfig);
+        pca9685.writeRegister(MODE1, (byte) 0x00); // Wake up
+        int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
+        pca9685.writeRegister(MODE1, (byte) 0x10); // Sleep
+        pca9685.writeRegister(PRESCALE, (byte) prescale);
+        pca9685.writeRegister(MODE1, (byte) 0x00); // Wake
+        Thread.sleep(1);
+        pca9685.writeRegister(MODE1, (byte) 0xA1); // Auto-increment
+        this.pca9685 = pca9685;
+    }
 
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(Application.class);
@@ -45,6 +58,7 @@ public class Application {
 
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
+
     }
 
     @GetMapping("/move")
@@ -53,12 +67,12 @@ public class Application {
         if (movement == null) {
             return ResponseEntity.badRequest().body("Invalid command");
         }
-        try (I2C pca9685 = initializePCA9685()) {
+        try (pca9685) {
             int[] pwm = getPwmForCommand(movement);
             for (int i = 0; i < 4; i++) {
                 setPwm(pca9685, i, 0, pwm[i]);
             }
-            Thread.sleep(1000);
+            Thread.sleep(4000);
             for (int i = 0; i < 4; i++) {
                 setPwm(pca9685, i, 0, 0);
             }
@@ -66,18 +80,6 @@ public class Application {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Hardware error: " + e.getMessage());
         }
-    }
-
-    private I2C initializePCA9685() throws Exception {
-        I2C pca9685 = i2CProvider.create(i2cConfig);
-        pca9685.writeRegister(MODE1, (byte) 0x00); // Wake up
-        int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
-        pca9685.writeRegister(MODE1, (byte) 0x10); // Sleep
-        pca9685.writeRegister(PRESCALE, (byte) prescale);
-        pca9685.writeRegister(MODE1, (byte) 0x00); // Wake
-        Thread.sleep(1);
-        pca9685.writeRegister(MODE1, (byte) 0xA1); // Auto-increment
-        return pca9685;
     }
 
     private void setPwm(I2C pca9685, int channel, int on, int off) {
@@ -99,6 +101,7 @@ public class Application {
 
     public enum MovementCommand {
         FORWARD, BACKWARD, LEFT, RIGHT;
+
         public static MovementCommand fromString(String command) {
             if (command == null) return null;
             try {
