@@ -1,3 +1,4 @@
+// src/main/java/io/github/bmd007/kale_kaj_freenov/Application.java
 package io.github.bmd007.kale_kaj_freenov;
 
 import com.pi4j.Pi4J;
@@ -44,21 +45,16 @@ public class Application {
 
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
-        console.title("<-- The Pi4J Project -->");
-        try (I2C pca9685 = initializePCA9685()) {
-            moveMotor(pca9685, 0, 2000, 1000); // Move left front motor forward for 1s
-        } catch (Exception e) {
-            console.box("Hardware initialization failed: " + e.getMessage());
-        }
     }
 
     @GetMapping("/move")
     public ResponseEntity<String> move(@RequestParam String command) {
+        var movement = MovementCommand.fromString(command);
+        if (movement == null) {
+            return ResponseEntity.badRequest().body("Invalid command");
+        }
         try (I2C pca9685 = initializePCA9685()) {
-            int[] pwm = getPwmForCommand(command);
-            if (pwm == null) {
-                return ResponseEntity.badRequest().body("Invalid command");
-            }
+            int[] pwm = getPwmForCommand(movement);
             for (int i = 0; i < 4; i++) {
                 setPwm(pca9685, i, 0, pwm[i]);
             }
@@ -66,18 +62,12 @@ public class Application {
             for (int i = 0; i < 4; i++) {
                 setPwm(pca9685, i, 0, 0);
             }
-            return ResponseEntity.ok("Moved " + command);
+            return ResponseEntity.ok("Moved " + movement.name().toLowerCase());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Hardware error: " + e.getMessage());
         }
     }
 
-    /**
-     * Initializes the PCA9685 PWM controller and sets the frequency.
-     *
-     * @return I2C instance for PCA9685
-     * @throws Exception on hardware error
-     */
     private I2C initializePCA9685() throws Exception {
         I2C pca9685 = i2CProvider.create(i2cConfig);
         pca9685.writeRegister(MODE1, (byte) 0x00); // Wake up
@@ -90,14 +80,6 @@ public class Application {
         return pca9685;
     }
 
-    /**
-     * Sets PWM for a specific channel.
-     *
-     * @param pca9685 I2C instance
-     * @param channel Motor channel (0-3)
-     * @param on      PWM ON time
-     * @param off     PWM OFF time
-     */
     private void setPwm(I2C pca9685, int channel, int on, int off) {
         int reg = LED0_ON_L + 4 * channel;
         pca9685.writeRegister(reg, (byte) (on & 0xFF));
@@ -106,34 +88,24 @@ public class Application {
         pca9685.writeRegister(reg + 3, (byte) ((off >> 8) & 0xFF));
     }
 
-    /**
-     * Moves a single motor for a specified duration.
-     *
-     * @param pca9685    I2C instance
-     * @param channel    Motor channel
-     * @param speed      PWM value
-     * @param durationMs Duration in milliseconds
-     * @throws InterruptedException if sleep fails
-     */
-    private void moveMotor(I2C pca9685, int channel, int speed, int durationMs) throws InterruptedException {
-        setPwm(pca9685, channel, 0, speed);
-        Thread.sleep(durationMs);
-        setPwm(pca9685, channel, 0, 0);
+    private int[] getPwmForCommand(MovementCommand command) {
+        return switch (command) {
+            case FORWARD -> new int[]{2000, 2000, 2000, 2000};
+            case BACKWARD -> new int[]{-2000, -2000, -2000, -2000};
+            case LEFT -> new int[]{-2000, -2000, 2000, 2000};
+            case RIGHT -> new int[]{2000, 2000, -2000, -2000};
+        };
     }
 
-    /**
-     * Returns PWM values for motors based on movement command.
-     *
-     * @param command Movement command
-     * @return Array of PWM values for channels 0-3, or null if invalid
-     */
-    private int[] getPwmForCommand(String command) {
-        return switch (command.toLowerCase()) {
-            case "forward" -> new int[]{2000, 2000, 2000, 2000};
-            case "backward" -> new int[]{-2000, -2000, -2000, -2000};
-            case "left" -> new int[]{-2000, -2000, 2000, 2000};
-            case "right" -> new int[]{2000, 2000, -2000, -2000};
-            default -> null;
-        };
+    public enum MovementCommand {
+        FORWARD, BACKWARD, LEFT, RIGHT;
+        public static MovementCommand fromString(String command) {
+            if (command == null) return null;
+            try {
+                return MovementCommand.valueOf(command.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        }
     }
 }
