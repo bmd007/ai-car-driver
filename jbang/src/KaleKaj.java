@@ -22,8 +22,9 @@ public class KaleKaj {
     private static final int MODE1 = 0x00;
     private static final int PWM_FREQ = 50;
     private static final int PRESCALE = 0xFE;
-    private static final int LED0_ON_L = 0x06;
     private static final int PCA9685_ADDR = 0x40;
+    private static final int SERVO_MIN_TICKS = 150;  // Adjust as needed
+    private static final int SERVO_MAX_TICKS = 600;  // Adjust as needed
 
     private static final I2CProvider I2C_PROVIDER = pi4j.provider("linuxfs-i2c");
     private static final I2CConfig I2C_CONFIG = I2C.newConfigBuilder(pi4j)
@@ -73,10 +74,22 @@ public class KaleKaj {
     }
 
     private void setServoPulse(int channel, int ticks) {
-        int reg = LED0_ON_L + 4 * channel;
-        pca9685.writeRegister(reg, (byte) 0); // ON_L
-        pca9685.writeRegister(reg + 1, (byte) 0); // ON_H
-        pca9685.writeRegister(reg + 2, (byte) (ticks & 0xFF)); // OFF_L
-        pca9685.writeRegister(reg + 3, (byte) ((ticks >> 8) & 0xFF)); // OFF_H
+        if (channel < 0 || channel > 15) {
+            System.err.println("Invalid channel: " + channel);
+            return;
+        }
+        if (ticks < SERVO_MIN_TICKS || ticks > SERVO_MAX_TICKS) {
+            System.err.println("Ticks out of range: " + ticks);
+            return;
+        }
+
+        // Each channel has 4 registers: LEDn_ON_L, LEDn_ON_H, LEDn_OFF_L, LEDn_OFF_H
+        int on = 0;
+        int off = ticks;
+        int base = 0x06 + 4 * channel;
+        pca9685.writeRegister(base, (byte) (on & 0xFF));         // LEDn_ON_L
+        pca9685.writeRegister(base + 1, (byte) (on >> 8));       // LEDn_ON_H
+        pca9685.writeRegister(base + 2, (byte) (off & 0xFF));    // LEDn_OFF_L
+        pca9685.writeRegister(base + 3, (byte) (off >> 8));      // LEDn_OFF_H
     }
 }
