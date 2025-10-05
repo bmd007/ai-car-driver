@@ -41,6 +41,12 @@ public class KaleKaj {
         System.out.println("Setting servo 2 to angle: " + angle2);
         kaleKaj.setServoAngle(4, angle1);
         kaleKaj.setServoAngle(5, angle2);
+
+        for (int i = 0; i < 10000; i++) {
+            Thread.sleep(2000);
+            kaleKaj.setServoAngle(4, i % 90);
+            kaleKaj.setServoAngle(5, i % 180);
+        }
     }
 
     public KaleKaj() throws InterruptedException {
