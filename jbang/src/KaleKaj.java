@@ -55,9 +55,17 @@ public class KaleKaj {
     }
 
     public void setServoAngle(int channel, int angle) {
-        int pulse = angleToPulse(angle);
-        setServoPulse(channel, pulse);
+        int error = 10;
+        int pulse;
+        if (channel == 4) {
+            pulse = 2500 - (int) ((angle + error) / 0.09);
+        } else {
+            pulse = 500 + (int) ((angle + error) / 0.09);
+        }
+        int ticks = (pulse * 4096) / 20000;
+        setServoPulse(channel, ticks);
     }
+
 
     private int angleToPulse(int angle) {
         int pulseUs = 500 + (int) ((angle / 180.0) * (2500 - 500));
