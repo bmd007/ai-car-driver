@@ -95,4 +95,10 @@ public class ActuatorResource {
         var movement = MotorService.MovementCommand.valueOf(command.trim().toUpperCase());
         motorService.move(movement);
     }
+
+    @PostMapping("/rotate-head")
+    public void moveHead(@RequestParam String direction) {
+        motorService.setServoAngle(0, 45);
+        motorService.setServoAngle(1, 120);
+    }
 }

@@ -32,14 +32,33 @@
     <img id="video-stream3" src="v3/video-stream" style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
 </div>
 
-<div class="joystick">
-    <div class="row">
-        <button class="btn" onclick="move('FORWARD')">&#8593;</button>
+<div style="display: flex; flex-direction: row; justify-content: center;">
+
+    <!-- Movement Joystick -->
+    <div class="joystick">
+        <div class="row">
+            <button class="btn" onclick="move('FORWARD')">&#8593;</button>
+        </div>
+        <div class="row">
+            <button class="btn" onclick="move('LEFT')">&#8592;</button>
+            <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
+            <button class="btn" onclick="move('RIGHT')">&#8594;</button>
+        </div>
     </div>
-    <div class="row">
-        <button class="btn" onclick="move('LEFT')">&#8592;</button>
-        <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
-        <button class="btn" onclick="move('RIGHT')">&#8594;</button>
+
+    <!-- Camera Angle Joystick -->
+    <div class="joystick">
+        <div class="row">
+            <button class="btn" onclick="rotateCamera('UP')">&#8593;</button>
+        </div>
+        <div class="row">
+            <button class="btn" onclick="rotateCamera('LEFT')">&#8592;</button>
+            <button class="btn" onclick="rotateCamera('CENTER')">&#9679;</button>
+            <button class="btn" onclick="rotateCamera('RIGHT')">&#8594;</button>
+        </div>
+        <div class="row">
+            <button class="btn" onclick="rotateCamera('DOWN')">&#8595;</button>
+        </div>
     </div>
 </div>
 <script>
@@ -50,10 +69,15 @@
                 img.src = 'v3/video-stream?ts=' + Date.now();
             }, 1000);
         });
+
     function move(direction) {
         fetch(`/move?command=${direction}`, {method: 'POST'})
-            .then(res => res.text())
             .catch(() => alert('Failed to send move command'));
+    }
+
+    function rotateCamera(direction) {
+        fetch(`/rotate-head?angle=${direction}`, {method: 'POST'})
+            .catch(() => alert('Failed to send camera command'));
     }
 </script>
 </body>
