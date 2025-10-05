@@ -48,7 +48,7 @@ public class KaleKatBazi {
         }
     }
 
-    public MotorService() throws InterruptedException {
+    public KaleKatBazi() throws InterruptedException {
         this.pca9685 = I2C_PROVIDER.create(I2C_CONFIG);
         pca9685.writeRegister(MODE1, (byte) 0x00);
         int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
