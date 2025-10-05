@@ -35,11 +35,11 @@ public class KaleKaj {
 
     public static void main(String[] args) throws InterruptedException {
         var kaleKaj = new KaleKaj();
-        var anlge1 = args.length > 0 ? Integer.parseInt(args[0]) : 90;
+        var angle1 = args.length > 0 ? Integer.parseInt(args[0]) : 90;
         var angle2 = args.length > 1 ? Integer.parseInt(args[1]) : 90;
-        System.out.println("Setting servo 1 to angle: " + anlge1);
+        System.out.println("Setting servo 1 to angle: " + angle1);
         System.out.println("Setting servo 2 to angle: " + angle2);
-        kaleKaj.setServoAngle(4, anlge1);
+        kaleKaj.setServoAngle(4, angle1);
         kaleKaj.setServoAngle(5, angle2);
     }
 
@@ -56,31 +56,21 @@ public class KaleKaj {
 
     public void setServoAngle(int channel, int angle) {
         int error = 10;
-        int pulse;
+        int pulse_us;
         if (channel == 4) {
-            pulse = 2500 - (int) ((angle + error) / 0.09);
+            pulse_us = 2500 - (int) ((angle + error) / 0.09);
         } else {
-            pulse = 500 + (int) ((angle + error) / 0.09);
+            pulse_us = 500 + (int) ((angle + error) / 0.09);
         }
-        int ticks = (pulse * 4096) / 20000;
+        int ticks = (pulse_us * 4096) / 20000; // 20ms period for 50Hz
         setServoPulse(channel, ticks);
     }
 
-
-    private int angleToPulse(int angle) {
-        int pulseUs = 500 + (int) ((angle / 180.0) * (2500 - 500));
-        return (pulseUs * 4096) / 20000; // 20ms period for 50Hz
-    }
-
-    private void setServoPulse(int channel, int pulse) {
+    private void setServoPulse(int channel, int ticks) {
         int reg = LED0_ON_L + 4 * channel;
-        pca9685.writeRegister(reg, (byte) 0);
-        pca9685.writeRegister(reg + 1, (byte) 0);
-        pca9685.writeRegister(reg + 2, (byte) (pulse & 0xFF));
-        pca9685.writeRegister(reg + 3, (byte) ((pulse >> 8) & 0xFF));
-    }
-
-    public enum MovementCommand {
-        FORWARD, BACKWARD, LEFT, RIGHT
+        pca9685.writeRegister(reg, (byte) 0); // ON_L
+        pca9685.writeRegister(reg + 1, (byte) 0); // ON_H
+        pca9685.writeRegister(reg + 2, (byte) (ticks & 0xFF)); // OFF_L
+        pca9685.writeRegister(reg + 3, (byte) ((ticks >> 8) & 0xFF)); // OFF_H
     }
 }
