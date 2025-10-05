@@ -36,6 +36,10 @@ public class KaleKaj {
 
     public static void main(String[] args) throws InterruptedException {
         var kaleKaj = new KaleKaj();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutting down, releasing servos...");
+            kaleKaj.releaseServos();
+        }));
         var angle1 = args.length > 0 ? Integer.parseInt(args[0]) : 90;
         var angle2 = args.length > 1 ? Integer.parseInt(args[1]) : 90;
         System.out.println("Setting servo 1 to angle: " + angle1);
@@ -43,8 +47,11 @@ public class KaleKaj {
         kaleKaj.setServoAngle(4, angle1);
         kaleKaj.setServoAngle(5, angle2);
 
-        kaleKaj.testServo();
+        while (true) {
+            kaleKaj.testServo();
+        }
     }
+
     public void testServo() throws InterruptedException {
         System.out.println("Testing servos...");
         // Sweep servo '0' (channel 4) from 50 to 110 and back
@@ -81,13 +88,14 @@ public class KaleKaj {
     public void setServoAngle(int channel, int angle) {
         int error = 10;
         int pulse_us;
-        // Match Python logic: channel 4 is '0', channel 5 is '1'
         if (channel == 4) {
             pulse_us = 2500 - (int) ((angle + error) / 0.09);
         } else {
             pulse_us = 500 + (int) ((angle + error) / 0.09);
         }
-        int ticks = (pulse_us * 4096) / 20000; // 20ms period for 50Hz
+        // Clamp pulse_us to safe range
+        pulse_us = Math.max(500, Math.min(2500, pulse_us));
+        int ticks = (pulse_us * 4096) / 20000;
         setServoPulse(channel, ticks);
     }
 
@@ -97,11 +105,22 @@ public class KaleKaj {
             return;
         }
         int on = 0;
-        int off = ticks;
+        int off = Math.max(0, Math.min(4095, ticks));
         int base = 0x06 + 4 * channel;
-        pca9685.writeRegister(base, (byte) (on & 0xFF));         // LEDn_ON_L
-        pca9685.writeRegister(base + 1, (byte) (on >> 8));       // LEDn_ON_H
-        pca9685.writeRegister(base + 2, (byte) (off & 0xFF));    // LEDn_OFF_L
-        pca9685.writeRegister(base + 3, (byte) (off >> 8));      // LEDn_OFF_H
+        pca9685.writeRegister(base, (byte) (on & 0xFF));
+        pca9685.writeRegister(base + 1, (byte) (on >> 8));
+        pca9685.writeRegister(base + 2, (byte) (off & 0xFF));
+        pca9685.writeRegister(base + 3, (byte) (off >> 8));
+    }
+
+    public void releaseServos() {
+        // Set servos to neutral (1500us pulse)
+        int neutralTicks = (1500 * 4096) / 20000;
+        setServoPulse(4, neutralTicks);
+        setServoPulse(5, neutralTicks);
+        // Optionally, set all PWM outputs to 0 to fully release
+        for (int ch = 0; ch < 16; ch++) {
+            setServoPulse(ch, 0);
+        }
     }
 }
