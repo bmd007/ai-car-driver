@@ -14,17 +14,13 @@ import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
-public class KaleKaj-jbang {
+public class KaleKajJbang {
 
     private static final Context pi4j = Pi4J.newAutoContext();
     private static final int I2C_BUS = 1;
     private static final int MODE1 = 0x00;
     private static final int PWM_FREQ = 50;
-    private static final int MAX_DUTY = 4095;
     private static final int PRESCALE = 0xFE;
     private static final int LED0_ON_L = 0x06;
     private static final int PCA9685_ADDR = 0x40;
@@ -37,18 +33,17 @@ public class KaleKaj-jbang {
         .build();
     private final I2C pca9685;
 
-    public static void main(String[] args) {
-        var motorService = new MotorService();
-        motorService.move(MovementCommand.FORWARD);
+    public static void main(String[] args) throws InterruptedException {
+        var kaleKaj = new KaleKajJbang();
         for (int i = 0; i < 10000; i++) {
-            motorService.setServoAngle(4, i % 180);
+            kaleKaj.setServoAngle(4, i % 180);
             Thread.sleep(50);
-            motorService.setServoAngle(5, 180 - (i % 180));
+            kaleKaj.setServoAngle(5, 180 - (i % 180));
             Thread.sleep(1000);
         }
     }
 
-    public KaleKaj-jbang() throws InterruptedException {
+    public KaleKajJbang() throws InterruptedException {
         this.pca9685 = I2C_PROVIDER.create(I2C_CONFIG);
         pca9685.writeRegister(MODE1, (byte) 0x00);
         int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
@@ -59,26 +54,16 @@ public class KaleKaj-jbang {
         pca9685.writeRegister(MODE1, (byte) 0xA1);
     }
 
-    // --- Servo control methods ---
-
-    /**
-     * Set servo angle for a given channel.
-     *
-     * @param channel Servo channel (0 for servo 0, 1 for servo 1)
-     * @param angle   Angle in degrees (0-180)
-     */
     public void setServoAngle(int channel, int angle) {
         int pulse = angleToPulse(angle);
         setServoPulse(channel, pulse);
     }
 
-    // Convert angle (0-180) to pulse width (500-2500us)
     private int angleToPulse(int angle) {
         int pulseUs = 500 + (int) ((angle / 180.0) * (2500 - 500));
         return (pulseUs * 4096) / 20000; // 20ms period for 50Hz
     }
 
-    // Set PWM pulse for a servo channel
     private void setServoPulse(int channel, int pulse) {
         int reg = LED0_ON_L + 4 * channel;
         pca9685.writeRegister(reg, (byte) 0);
