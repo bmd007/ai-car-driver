@@ -43,10 +43,27 @@ public class KaleKaj {
         kaleKaj.setServoAngle(4, angle1);
         kaleKaj.setServoAngle(5, angle2);
 
-        for (int i = 0; i < 100; i++) {
-            Thread.sleep(2000);
-            kaleKaj.setServoAngle(4, i % 90);
-            kaleKaj.setServoAngle(5, i % 90);
+        kaleKaj.testServo();
+    }
+    public void testServo() throws InterruptedException {
+        System.out.println("Testing servos...");
+        // Sweep servo '0' (channel 4) from 50 to 110 and back
+        for (int i = 50; i <= 110; i++) {
+            setServoAngle(4, i);
+            Thread.sleep(10);
+        }
+        for (int i = 110; i >= 50; i--) {
+            setServoAngle(4, i);
+            Thread.sleep(10);
+        }
+        // Sweep servo '1' (channel 5) from 80 to 150 and back
+        for (int i = 80; i <= 150; i++) {
+            setServoAngle(5, i);
+            Thread.sleep(10);
+        }
+        for (int i = 150; i >= 80; i--) {
+            setServoAngle(5, i);
+            Thread.sleep(10);
         }
     }
 
