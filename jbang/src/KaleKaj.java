@@ -15,6 +15,9 @@ import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class KaleKaj {
 
     private static final Context pi4j = Pi4J.newAutoContext();
@@ -23,8 +26,6 @@ public class KaleKaj {
     private static final int PWM_FREQ = 50;
     private static final int PRESCALE = 0xFE;
     private static final int PCA9685_ADDR = 0x40;
-    private static final int SERVO_MIN_TICKS = 150;  // Adjust as needed
-    private static final int SERVO_MAX_TICKS = 600;  // Adjust as needed
 
     private static final I2CProvider I2C_PROVIDER = pi4j.provider("linuxfs-i2c");
     private static final I2CConfig I2C_CONFIG = I2C.newConfigBuilder(pi4j)
@@ -34,22 +35,47 @@ public class KaleKaj {
         .build();
     private final I2C pca9685;
 
+    int initialPulse = 1500; // Initial pulse width in microseconds
+    static Map<String, Integer> pwmChannelMap = new HashMap<>();
+
+    static {
+        pwmChannelMap.put("0", 8);
+        pwmChannelMap.put("1", 9);
+        pwmChannelMap.put("2", 10);
+        pwmChannelMap.put("3", 11);
+        pwmChannelMap.put("4", 12);
+        pwmChannelMap.put("5", 13);
+        pwmChannelMap.put("6", 14);
+        pwmChannelMap.put("7", 15);
+    }
+
+    public KaleKaj() throws InterruptedException {
+        this.pca9685 = I2C_PROVIDER.create(I2C_CONFIG);
+        pca9685.writeRegister(MODE1, (byte) 0x00);
+        int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
+        pca9685.writeRegister(MODE1, (byte) 0x10);
+        pca9685.writeRegister(PRESCALE, (byte) prescale);
+        pca9685.writeRegister(MODE1, (byte) 0x00);
+        Thread.sleep(1);
+        pca9685.writeRegister(MODE1, (byte) 0xA1);
+
+        pwmChannelMap.values()
+            .forEach(channel -> setServoPulse(channel, initialPulse));
+    }
+
     public static void main(String[] args) throws InterruptedException {
         var kaleKaj = new KaleKaj();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutting down, releasing servos...");
             kaleKaj.releaseServos();
         }));
+
         var angle1 = args.length > 0 ? Integer.parseInt(args[0]) : 90;
         var angle2 = args.length > 1 ? Integer.parseInt(args[1]) : 90;
         System.out.println("Setting servo 1 to angle: " + angle1);
         System.out.println("Setting servo 2 to angle: " + angle2);
         kaleKaj.setServoAngle(4, angle1);
         kaleKaj.setServoAngle(5, angle2);
-
-        while (true) {
-            kaleKaj.testServo();
-        }
     }
 
     public void testServo() throws InterruptedException {
@@ -74,17 +100,6 @@ public class KaleKaj {
         }
     }
 
-    public KaleKaj() throws InterruptedException {
-        this.pca9685 = I2C_PROVIDER.create(I2C_CONFIG);
-        pca9685.writeRegister(MODE1, (byte) 0x00);
-        int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
-        pca9685.writeRegister(MODE1, (byte) 0x10);
-        pca9685.writeRegister(PRESCALE, (byte) prescale);
-        pca9685.writeRegister(MODE1, (byte) 0x00);
-        Thread.sleep(1);
-        pca9685.writeRegister(MODE1, (byte) 0xA1);
-    }
-
     public void setServoAngle(int channel, int angle) {
         int error = 10;
         int pulse_us;
@@ -99,18 +114,12 @@ public class KaleKaj {
         setServoPulse(channel, ticks);
     }
 
-    private void setServoPulse(int channel, int ticks) {
+    private void setServoPulse(int channel, int pulse) {
         if (channel < 0 || channel > 15) {
             System.err.println("Invalid channel: " + channel);
             return;
         }
-        int on = 0;
-        int off = Math.max(0, Math.min(4095, ticks));
-        int base = 0x06 + 4 * channel;
-        pca9685.writeRegister(base, (byte) (on & 0xFF));
-        pca9685.writeRegister(base + 1, (byte) (on >> 8));
-        pca9685.writeRegister(base + 2, (byte) (off & 0xFF));
-        pca9685.writeRegister(base + 3, (byte) (off >> 8));
+        var newPulse = pulse * 4096 / 20000;
     }
 
     public void releaseServos() {

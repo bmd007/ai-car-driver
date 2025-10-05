@@ -1,7 +1,6 @@
 package io.github.bmd007.kale_kaj_freenov.resource;
 
 import io.github.bmd007.kale_kaj_freenov.service.MotorService;
-import io.github.bmd007.kale_kaj_freenov.service.RpiCamStill;
 import io.github.bmd007.kale_kaj_freenov.service.RpiCamVid;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -11,13 +10,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.util.UUID;
 
 
 @RestController
@@ -94,11 +91,5 @@ public class ActuatorResource {
     public void move(@RequestParam String command) {
         var movement = MotorService.MovementCommand.valueOf(command.trim().toUpperCase());
         motorService.move(movement);
-    }
-
-    @PostMapping("/rotate-head")
-    public void moveHead(@RequestParam String direction) {
-        motorService.setServoAngle(0, 45);
-        motorService.setServoAngle(1, 120);
     }
 }
