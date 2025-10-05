@@ -35,12 +35,12 @@ public class KaleKaj {
 
     public static void main(String[] args) throws InterruptedException {
         var kaleKaj = new KaleKaj();
-        for (int i = 0; i < 10000; i++) {
-            kaleKaj.setServoAngle(4, i % 180);
-            Thread.sleep(50);
-            kaleKaj.setServoAngle(5, 180 - (i % 180));
-            Thread.sleep(1000);
-        }
+        var anlge1 = args.length > 0 ? Integer.parseInt(args[0]) : 90;
+        var angle2 = args.length > 1 ? Integer.parseInt(args[1]) : 90;
+        System.out.println("Setting servo 1 to angle: " + anlge1);
+        System.out.println("Setting servo 2 to angle: " + angle2);
+        kaleKaj.setServoAngle(4, anlge1);
+        kaleKaj.setServoAngle(5, angle2);
     }
 
     public KaleKaj() throws InterruptedException {
