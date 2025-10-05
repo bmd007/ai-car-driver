@@ -1,7 +1,7 @@
 /// usr/bin/env jbang "$0" "$@" ; exit $?
 ///
 //REPOS central, maven-central=https://repo.maven.apache.org/maven2/
-//MAIN KaleKatBazi
+//MAIN KaleKaj
 //DEPS com.pi4j:pi4j-core:2.7.0
 //DEPS com.pi4j:pi4j-plugin-gpiod:2.7.0
 //DEPS com.pi4j:pi4j-plugin-linuxfs:2.7.0
@@ -15,7 +15,7 @@ import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
 
-public class KaleKajJbang {
+public class KaleKaj {
 
     private static final Context pi4j = Pi4J.newAutoContext();
     private static final int I2C_BUS = 1;
@@ -34,7 +34,7 @@ public class KaleKajJbang {
     private final I2C pca9685;
 
     public static void main(String[] args) throws InterruptedException {
-        var kaleKaj = new KaleKajJbang();
+        var kaleKaj = new KaleKaj();
         for (int i = 0; i < 10000; i++) {
             kaleKaj.setServoAngle(4, i % 180);
             Thread.sleep(50);
@@ -43,7 +43,7 @@ public class KaleKajJbang {
         }
     }
 
-    public KaleKajJbang() throws InterruptedException {
+    public KaleKaj() throws InterruptedException {
         this.pca9685 = I2C_PROVIDER.create(I2C_CONFIG);
         pca9685.writeRegister(MODE1, (byte) 0x00);
         int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
