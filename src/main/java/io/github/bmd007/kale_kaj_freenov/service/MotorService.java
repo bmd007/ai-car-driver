@@ -32,9 +32,6 @@ public class MotorService {
     private final I2C pca9685;
 
     public MotorService() throws InterruptedException {
-        if (!isHardwareSupported()) {
-            throw new IllegalStateException("Servo not supported on this hardware version.");
-        }
         this.pca9685 = I2C_PROVIDER.create(I2C_CONFIG);
         pca9685.writeRegister(MODE1, (byte) 0x00);
         int prescale = (int) Math.round(25000000.0 / (4096 * PWM_FREQ) - 1);
