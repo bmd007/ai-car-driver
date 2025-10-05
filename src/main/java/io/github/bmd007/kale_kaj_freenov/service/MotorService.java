@@ -182,6 +182,6 @@ public class MotorService {
     }
 
     public enum MovementCommand {
-        FORWARD, BACKWARD, LEFT, RIGHT;
+        FORWARD, BACKWARD, LEFT, RIGHT
     }
 }

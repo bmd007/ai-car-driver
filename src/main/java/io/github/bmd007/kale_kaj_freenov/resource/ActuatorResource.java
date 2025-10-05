@@ -24,15 +24,6 @@ import java.util.UUID;
 @SpringBootApplication
 public class ActuatorResource {
 
-    public static final String PICS_DIRECTORY = "/home/pi/Pictures";
-    private static final RpiCamStill PHOTO_CAMERA = new RpiCamStill()
-        .setOutputDir(PICS_DIRECTORY)
-        .setDimensions(600, 800)
-        .setTimeout(100)
-        .setEncoding("jpg")
-        .setQuality(95)
-        .setVerbose(false);
-
     private static final Sinks.Many<byte[]> SINK = Sinks.many()
         .multicast()
         .onBackpressureBuffer(4, false);
@@ -97,12 +88,6 @@ public class ActuatorResource {
     @GetMapping(value = "v3/video-stream", produces = "multipart/x-mixed-replace; boundary=frame")
     public Flux<byte[]> videoStream() {
         return SINK.asFlux();
-    }
-
-    @GetMapping(value = "/image")
-    public Mono<String> image() {
-        return PHOTO_CAMERA.captureStillAsync(UUID.randomUUID() + ".jpg")
-            .map(file -> "http://192.168.1.165:8080/files/" + file.getName());
     }
 
     @PostMapping("/move")
