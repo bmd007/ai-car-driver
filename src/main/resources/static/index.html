@@ -9,39 +9,28 @@
             flex-direction: column;
             align-items: center;
             margin: 20px;
+            border: 8px solid red;
         }
 
         .row {
             display: flex;
             justify-content: center;
+            border: 8px solid yellow;
         }
 
         .btn {
-            width: 60px;
-            height: 60px;
-            margin: 5px;
-            font-size: 24px;
-        }
-
-        #pictures {
-            margin-top: 30px;
-        }
-
-        #latest-picture-frame {
-            margin-bottom: 15px;
-            text-align: start;
-        }
-
-        #latest-picture {
-            max-width: 520px;
-            max-height: 530px;
-            border: 10px solid red;
+            width: 80px;
+            height: 80px;
+            margin: 10px;
+            font-size: 27px;
         }
     </style>
 </head>
 <body>
 
-
+<div id="video-frame3" style="margin-left: 30px; border: 8px solid green; padding: 4px; background: #eaffea;">
+    <img id="video-stream3" src="v3/video-stream" style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
+</div>
 
 <div class="joystick">
     <div class="row">
@@ -49,57 +38,23 @@
     </div>
     <div class="row">
         <button class="btn" onclick="move('LEFT')">&#8592;</button>
+        <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
         <button class="btn" onclick="move('RIGHT')">&#8594;</button>
     </div>
-    <div class="row">
-        <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
-    </div>
-</div>
-
-<div id="video-frame3" style="margin-left: 30px; border: 8px solid green; padding: 4px; background: #eaffea;">
-    <img id="video-stream3" src="v3/video-stream" style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
-</div>
-
-<div id="latest-picture-frame" style="display: none;">
-    <img id="latest-picture" src="" alt="Latest picture" style="display: none;">
-</div>
-<div id="pictures" style="display: none;">
-    <button onclick="takePicture()">Take Picture</button>
-    <h3>Taken Pictures</h3>
-    <div id="picture-list"></div>
 </div>
 <script>
+    document.getElementById('video-stream3')
+        .addEventListener('error', function () {
+            setTimeout(function () {
+                const img = document.getElementById('video-stream3');
+                img.src = 'v3/video-stream?ts=' + Date.now();
+            }, 1000);
+        });
     function move(direction) {
-        fetch(`/move?command=${direction}`, {method: 'GET'})
+        fetch(`/move?command=${direction}`, {method: 'POST'})
             .then(res => res.text())
             .catch(() => alert('Failed to send move command'));
     }
-
-    // function takePicture() {
-    //     fetch('/image', {method: 'GET'})
-    //         .then(res => res.text())
-    //         .then(path => {
-    //             const img = document.getElementById('latest-picture');
-    //             img.src = path;
-    //             img.style.display = 'inline-block';
-    //             loadPictures();
-    //         })
-    //         .catch(() => alert('Network error'));
-    // }
-
-    // function loadPictures() {
-    //     fetch('/files')
-    //         .then(res => res.json())
-    //         .then(links => {
-    //             const list = document.getElementById('picture-list');
-    //             list.innerHTML = '';
-    //             links.forEach(fileName => {
-    //                 list.innerHTML += `<a href="/files/${fileName}" target="_blank">${fileName}</a><br>`;
-    //             });
-    //         });
-    // }
-
-    // window.onload = loadPictures;
 </script>
 </body>
 </html>

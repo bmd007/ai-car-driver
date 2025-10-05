@@ -1,4 +1,4 @@
-package io.github.bmd007.kale_kaj_freenov;
+package io.github.bmd007.kale_kaj_freenov.service;
 
 import reactor.core.publisher.Mono;
 

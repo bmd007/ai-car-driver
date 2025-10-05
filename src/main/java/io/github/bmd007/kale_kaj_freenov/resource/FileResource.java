@@ -1,4 +1,4 @@
-package io.github.bmd007.kale_kaj_freenov;
+package io.github.bmd007.kale_kaj_freenov.resource;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,7 +16,7 @@ import java.util.List;
 import static io.github.bmd007.kale_kaj_freenov.Application.PICS_DIRECTORY;
 
 @RestController
-public class FileController {
+public class FileResource {
 
     @GetMapping(value = "/files")
     public ResponseEntity<List<String>> listFiles() {
