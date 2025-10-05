@@ -4,9 +4,7 @@ import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
-import org.springframework.stereotype.Service;
 
-@Service
 public class PCA9685 {
 
     private static final int MODE1 = 0x00;

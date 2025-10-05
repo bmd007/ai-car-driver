@@ -46,22 +46,24 @@
         </div>
     </div>
 
+<!--    //todo need to limit the angle range to avoid collision with other components on the robot-->
     <!-- Camera Angle Joystick -->
     <div class="joystick">
         <div>
             <label for="servo1">Camera Left/Right</label>
-            <input type="range" id="servo1" min="0" max="180" value="90"/>
+            <input type="range" id="servo1" min="10" max="140" value="90"/>
             <button onclick="moveServo('0', parseInt(document.getElementById('servo1').value) - 10)">Left</button>
             <button onclick="moveServo('0', parseInt(document.getElementById('servo1').value) + 10)">Right</button>
         </div>
         <div>
             <label for="servo2">Camera Up/Down</label>
-            <input type="range" id="servo2" min="80" max="180" value="90"/>
-            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) + 10)">Up</button>
-            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) - 10)">Down</button>
+            <input type="range" id="servo2" min="40" max="140" value="90"/>
+            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) + 10)">Down</button>
+            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) - 10)">Up</button>
         </div>
         <button onclick="moveServo('0', 90); moveServo('1', 90);">Home</button>
     </div>
+
 </div>
 <script>
     document.getElementById('video-stream3')
@@ -79,8 +81,8 @@
 
     function moveServo(channel, angle) {
         // Clamp values to valid range
-        if (channel === '0') angle = Math.max(0, Math.min(180, angle));
-        if (channel === '1') angle = Math.max(80, Math.min(180, angle));
+        if (channel === '0') angle = Math.max(10, Math.min(140, angle));
+        if (channel === '1') angle = Math.max(40, Math.min(140, angle)); // allow full range
         // Update slider value
         if (channel === '0') document.getElementById('servo1').value = angle;
         if (channel === '1') document.getElementById('servo2').value = angle;

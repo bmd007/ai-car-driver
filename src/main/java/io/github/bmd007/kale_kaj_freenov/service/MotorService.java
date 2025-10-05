@@ -9,14 +9,11 @@ import reactor.core.scheduler.Schedulers;
 @Service
 public class MotorService {
 
-    private static final int I2C_BUS = 1;
-    private static final int PCA9685_ADDR = 0x40;
     private static final int MAX_DUTY = 4095;
     private final PCA9685 pca9685;
 
-    public MotorService() throws InterruptedException {
-        Context pi4j = Pi4J.newAutoContext();
-        this.pca9685 = new PCA9685(pi4j, I2C_BUS, PCA9685_ADDR);
+    public MotorService(PCA9685 pca9685) {
+        this.pca9685 = pca9685;
     }
 
     public void move(MovementCommand command) {
