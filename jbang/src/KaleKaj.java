@@ -43,10 +43,10 @@ public class KaleKaj {
         kaleKaj.setServoAngle(4, angle1);
         kaleKaj.setServoAngle(5, angle2);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             Thread.sleep(2000);
             kaleKaj.setServoAngle(4, i % 90);
-            kaleKaj.setServoAngle(5, i % 180);
+            kaleKaj.setServoAngle(5, i % 90);
         }
     }
 
@@ -64,6 +64,7 @@ public class KaleKaj {
     public void setServoAngle(int channel, int angle) {
         int error = 10;
         int pulse_us;
+        // Match Python logic: channel 4 is '0', channel 5 is '1'
         if (channel == 4) {
             pulse_us = 2500 - (int) ((angle + error) / 0.09);
         } else {
@@ -78,12 +79,6 @@ public class KaleKaj {
             System.err.println("Invalid channel: " + channel);
             return;
         }
-        if (ticks < SERVO_MIN_TICKS || ticks > SERVO_MAX_TICKS) {
-            System.err.println("Ticks out of range: " + ticks);
-            return;
-        }
-
-        // Each channel has 4 registers: LEDn_ON_L, LEDn_ON_H, LEDn_OFF_L, LEDn_OFF_H
         int on = 0;
         int off = ticks;
         int base = 0x06 + 4 * channel;
