@@ -48,17 +48,19 @@
 
     <!-- Camera Angle Joystick -->
     <div class="joystick">
-        <div class="row">
-            <button class="btn" onclick="rotateCamera('UP')">&#8593;</button>
+        <div>
+            <label for="servo1">Camera Left/Right</label>
+            <input type="range" id="servo1" min="0" max="180" value="90"/>
+            <button onclick="moveServo('0', parseInt(document.getElementById('servo1').value) - 10)">Left</button>
+            <button onclick="moveServo('0', parseInt(document.getElementById('servo1').value) + 10)">Right</button>
         </div>
-        <div class="row">
-            <button class="btn" onclick="rotateCamera('LEFT')">&#8592;</button>
-            <button class="btn" onclick="rotateCamera('CENTER')">&#9679;</button>
-            <button class="btn" onclick="rotateCamera('RIGHT')">&#8594;</button>
+        <div>
+            <label for="servo2">Camera Up/Down</label>
+            <input type="range" id="servo2" min="80" max="180" value="90"/>
+            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) + 10)">Up</button>
+            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) - 10)">Down</button>
         </div>
-        <div class="row">
-            <button class="btn" onclick="rotateCamera('DOWN')">&#8595;</button>
-        </div>
+        <button onclick="moveServo('0', 90); moveServo('1', 90);">Home</button>
     </div>
 </div>
 <script>
@@ -75,10 +77,26 @@
             .catch(() => alert('Failed to send move command'));
     }
 
-    function rotateCamera(direction) {
-        fetch(`/rotate-head?angle=${direction}`, {method: 'POST'})
-            .catch(() => alert('Failed to send camera command'));
+    function moveServo(channel, angle) {
+        // Clamp values to valid range
+        if (channel === '0') angle = Math.max(0, Math.min(180, angle));
+        if (channel === '1') angle = Math.max(80, Math.min(180, angle));
+        // Update slider value
+        if (channel === '0') document.getElementById('servo1').value = angle;
+        if (channel === '1') document.getElementById('servo2').value = angle;
+        // Send command to server
+        fetch(`/rotate-head?channel=${channel}&angle=${angle}`, {method: 'POST'});
     }
+
+    // Optionally, send command when slider is moved
+    document.getElementById('servo1')
+        .addEventListener('input', function (e) {
+            moveServo('0', parseInt(e.target.value));
+        });
+    document.getElementById('servo2')
+        .addEventListener('input', function (e) {
+            moveServo('1', parseInt(e.target.value));
+        });
 </script>
 </body>
 </html>

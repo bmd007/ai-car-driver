@@ -1,7 +1,8 @@
-package io.github.bmd007.kale_kaj_freenov.resource;
+package io.github.bmd007.kale_kaj_freenov;
 
 import io.github.bmd007.kale_kaj_freenov.service.MotorService;
 import io.github.bmd007.kale_kaj_freenov.service.RpiCamVid;
+import io.github.bmd007.kale_kaj_freenov.service.ServoService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -32,9 +33,11 @@ public class ActuatorResource {
         .setVerbose(false);
 
     private final MotorService motorService;
+    private final ServoService servoService;
 
-    public ActuatorResource(MotorService motorService) {
+    public ActuatorResource(MotorService motorService, ServoService servoService) {
         this.motorService = motorService;
+        this.servoService = servoService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -91,5 +94,10 @@ public class ActuatorResource {
     public void move(@RequestParam String command) {
         var movement = MotorService.MovementCommand.valueOf(command.trim().toUpperCase());
         motorService.move(movement);
+    }
+
+    @PostMapping("/rotate-head")
+    public void rotateHead(@RequestParam String channel, @RequestParam int angle) {
+        servoService.setServoPwm(channel, angle);
     }
 }

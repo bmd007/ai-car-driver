@@ -2,7 +2,6 @@ package io.github.bmd007.kale_kaj_freenov.service;
 
 import com.pi4j.Pi4J;
 import com.pi4j.context.Context;
-import io.github.bmd007.kale_kaj_freenov.service.PCA9685;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -25,7 +24,7 @@ public class MotorService {
         Mono.fromRunnable(() -> {
                 setMotorModel(duties[0], duties[1], duties[2], duties[3]);
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(300);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -37,10 +36,10 @@ public class MotorService {
 
     private int[] getDutiesForCommand(MovementCommand command) {
         return switch (command) {
-            case FORWARD -> new int[]{-1400, -1400, -1400, -1400};
-            case BACKWARD -> new int[]{1400, 1400, 1400, 1400};
-            case RIGHT -> new int[]{-1400, -1400, 1600, 1600};
-            case LEFT -> new int[]{1600, 1600, -1400, -1400};
+            case FORWARD -> new int[]{-1600, -1600, -1600, -1600};
+            case BACKWARD -> new int[]{1600, 1600, 1600, 1600};
+            case RIGHT -> new int[]{-2500, -2500, 0, 0};
+            case LEFT -> new int[]{0, 0, -2500, -2500};
         };
     }
 
