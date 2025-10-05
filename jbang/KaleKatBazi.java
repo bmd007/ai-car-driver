@@ -1,7 +1,7 @@
 /// usr/bin/env jbang "$0" "$@" ; exit $?
 ///
 //REPOS central, maven-central=https://repo.maven.apache.org/maven2/
-//MAIN MotorService
+//MAIN KaleKatBazi
 //DEPS com.pi4j:pi4j-core:2.7.0
 //DEPS com.pi4j:pi4j-plugin-gpiod:2.7.0
 //DEPS com.pi4j:pi4j-plugin-linuxfs:2.7.0
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-public class MotorService {
+public class KaleKatBazi {
 
     private static final Context pi4j = Pi4J.newAutoContext();
     private static final int I2C_BUS = 1;
