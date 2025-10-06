@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @SpringBootApplication
-public class Application {
+public class FreenovKaleKaj {
     public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(Application.class);
+        SpringApplication app = new SpringApplication(FreenovKaleKaj.class);
         app.setWebApplicationType(WebApplicationType.REACTIVE);
         app.run(args);
     }
