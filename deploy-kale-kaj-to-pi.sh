@@ -3,7 +3,6 @@
 PASSWORD="$1"
 JAR_PATH="deployment/kale-kaj.jar"
 DEST="pi@192.168.1.165:/home/pi/freenov-kale-kaj/deployment"
-REMOTE_JAR_PATH="/home/pi/freenov-kale-kaj/deployment/kale-kaj.jar"
 
 if [ -z "$PASSWORD" ]; then
   echo "Usage: $0 <ssh_password>"

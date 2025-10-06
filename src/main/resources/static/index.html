@@ -57,7 +57,7 @@
         </div>
         <div>
             <label for="servo2">Camera Up/Down</label>
-            <input type="range" id="servo2" min="40" max="140" value="90"/>
+            <input type="range" id="servo2" min="40" max="120" value="90"/>
             <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) + 10)">Down</button>
             <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) - 10)">Up</button>
         </div>
@@ -82,7 +82,7 @@
     function moveServo(channel, angle) {
         // Clamp values to valid range
         if (channel === '0') angle = Math.max(10, Math.min(140, angle));
-        if (channel === '1') angle = Math.max(40, Math.min(140, angle)); // allow full range
+        if (channel === '1') angle = Math.max(40, Math.min(120, angle)); // allow full range
         // Update slider value
         if (channel === '0') document.getElementById('servo1').value = angle;
         if (channel === '1') document.getElementById('servo2').value = angle;
