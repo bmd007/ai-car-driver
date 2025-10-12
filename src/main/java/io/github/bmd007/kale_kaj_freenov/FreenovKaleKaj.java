@@ -7,8 +7,14 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
+@EnableWebFluxSecurity
 @SpringBootApplication
 public class FreenovKaleKaj {
     public static void main(String[] args) {
@@ -25,4 +31,14 @@ public class FreenovKaleKaj {
         return new PCA9685(Pi4J.newAutoContext(), I2C_BUS, PCA9685_ADDR);
     }
 
+    @Bean
+    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        http
+            .authorizeExchange(authorize -> authorize
+                .anyExchange().permitAll()
+            )
+            .oauth2Login(withDefaults());
+
+        return http.build();
+    }
 }

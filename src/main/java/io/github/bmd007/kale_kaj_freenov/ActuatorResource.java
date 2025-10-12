@@ -17,6 +17,8 @@ import reactor.core.scheduler.Schedulers;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
+import static io.github.bmd007.kale_kaj_freenov.service.MotorService.*;
+
 
 @RestController
 @SpringBootApplication
@@ -92,7 +94,7 @@ public class ActuatorResource {
 
     @PostMapping("/move")
     public void move(@RequestParam String command) {
-        var movement = MotorService.MovementCommand.valueOf(command.trim().toUpperCase());
+        var movement = MovementCommand.valueOf(command.trim().toUpperCase());
         motorService.move(movement);
     }
 

@@ -210,3 +210,5 @@ __marimo__/
 /.gradle/
 /build/libs/
 /fat-jar/
+/gcp-firebase/oidc_client_secret.json
+/.env
