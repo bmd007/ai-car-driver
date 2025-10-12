@@ -92,13 +92,13 @@ public class ActuatorResource {
         return SINK.asFlux();
     }
 
-    @PostMapping("/move")
+    @PostMapping("move")
     public void move(@RequestParam String command) {
         var movement = MovementCommand.valueOf(command.trim().toUpperCase());
         motorService.move(movement);
     }
 
-    @PostMapping("/rotate-head")
+    @PostMapping("rotate-head")
     public void rotateHead(@RequestParam String channel, @RequestParam int angle) {
         servoService.setServoPwm(channel, angle);
     }

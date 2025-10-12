@@ -3,20 +3,3 @@ server:
   address: 192.168.1.165
   port: 8080
   shutdown: immediate
-
-spring:
-  main:
-    banner-mode: off
-
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            provider: google
-            client-id: 948788582778-k6efeop2s9qfab64ofq72mu54vigop7n.apps.googleusercontent.com
-            client-secret: ${GCP_CLIENT_SECRET}
-
-      resourceserver:
-        jwt:
-          issuer-uri: https://my-auth-server.com
