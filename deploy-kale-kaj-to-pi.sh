@@ -32,3 +32,10 @@ sshpass -p "$PASSWORD" scp "$JAR_PATH" "$DEST" || {
 }
 
 echo "JAR successfully copied to Raspberry Pi."
+
+sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "sh ./home/pi/freenov-kale-kaj/deployment/service-enabler.sh" || {
+  echo "Error: Unable to connect to Raspberry Pi or create directory."
+  exit 4
+}
+
+echo "Kale-kaj service started."
