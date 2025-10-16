@@ -14,7 +14,7 @@ if ! command -v sshpass &> /dev/null; then
   exit 2
 fi
 
-./gradlew bootJar
+./gradlew --configuration-cache bootJar
 
 if [ ! -f "$JAR_PATH" ]; then
   echo "Error: $JAR_PATH not found."
