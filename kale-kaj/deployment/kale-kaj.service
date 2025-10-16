@@ -1,0 +1,13 @@
+[Unit]
+Description=Kale Kaj Robot Java Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/home/pi/.jbang/currentjdk/bin/java -jar kale-kaj.jar & pitunnel --host=http://192.168.1.165 --port=8080 --name=kalekaj --http --persist
+WorkingDirectory=/home/pi/ai-car-driver/kale-kaj/deployment
+#Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,5 @@
+spring.application.name: kale-kaj
+server:
+  address: 192.168.1.165
+  port: 8080
+  shutdown: immediate

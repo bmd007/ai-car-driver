@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kale Kaj Robot Control</title>
+    <style>
+        .joystick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            border: 8px solid red;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+            border: 8px solid yellow;
+        }
+
+        .btn {
+            width: 80px;
+            height: 80px;
+            margin: 10px;
+            font-size: 27px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="video-frame3" style="margin-left: 30px; border: 8px solid green; padding: 4px; background: #eaffea;">
+    <img id="video-stream3" src="v3/video-stream" style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
+</div>
+
+<div style="display: flex; flex-direction: row; justify-content: center;">
+
+    <!-- Movement Joystick -->
+    <div class="joystick">
+        <div class="row">
+            <button class="btn" onclick="move('FORWARD')">&#8593;</button>
+        </div>
+        <div class="row">
+            <button class="btn" onclick="move('LEFT')">&#8592;</button>
+            <button class="btn" onclick="move('BACKWARD')">&#8595;</button>
+            <button class="btn" onclick="move('RIGHT')">&#8594;</button>
+        </div>
+    </div>
+
+<!--    //todo need to limit the angle range to avoid collision with other components on the robot-->
+    <!-- Camera Angle Joystick -->
+    <div class="joystick">
+        <div>
+            <label for="servo1">Camera Left/Right</label>
+            <input type="range" id="servo1" min="10" max="140" value="90"/>
+            <button onclick="moveServo('0', parseInt(document.getElementById('servo1').value) - 10)">Left</button>
+            <button onclick="moveServo('0', parseInt(document.getElementById('servo1').value) + 10)">Right</button>
+        </div>
+        <div>
+            <label for="servo2">Camera Up/Down</label>
+            <input type="range" id="servo2" min="40" max="100" value="90"/>
+            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) + 10)">Down</button>
+            <button onclick="moveServo('1', parseInt(document.getElementById('servo2').value) - 10)">Up</button>
+        </div>
+        <button onclick="moveServo('0', 90); moveServo('1', 90);">Home</button>
+    </div>
+
+</div>
+<script>
+    document.getElementById('video-stream3')
+        .addEventListener('error', function () {
+            setTimeout(function () {
+                const img = document.getElementById('video-stream3');
+                img.src = 'v3/video-stream?ts=' + Date.now();
+            }, 1000);
+        });
+
+    function move(direction) {
+        fetch(`/move?command=${direction}`, {method: 'POST'})
+            .catch(() => alert('Failed to send move command'));
+    }
+
+    function moveServo(channel, angle) {
+        // Clamp values to valid range
+        if (channel === '0') angle = Math.max(10, Math.min(140, angle));
+        if (channel === '1') angle = Math.max(40, Math.min(100, angle)); // allow full range
+        // Update slider value
+        if (channel === '0') document.getElementById('servo1').value = angle;
+        if (channel === '1') document.getElementById('servo2').value = angle;
+        // Send command to server
+        fetch(`/rotate-head?channel=${channel}&angle=${angle}`, {method: 'POST'});
+    }
+
+    // Optionally, send command when slider is moved
+    document.getElementById('servo1')
+        .addEventListener('input', function (e) {
+            moveServo('0', parseInt(e.target.value));
+        });
+    document.getElementById('servo2')
+        .addEventListener('input', function (e) {
+            moveServo('1', parseInt(e.target.value));
+        });
+</script>
+</body>
+</html>

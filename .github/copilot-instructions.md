@@ -1,4 +1,4 @@
-# GitHub Copilot Instructions for Freenov Kale Kaj Robot
+# GitHub Copilot Instructions for Kale Kaj Robot
 
 ## Project Overview
 This is a Raspberry Pi-based robot control system that manages various hardware components including motors, LEDs, sensors, and cameras. The system supports different hardware versions and Raspberry Pi models.
