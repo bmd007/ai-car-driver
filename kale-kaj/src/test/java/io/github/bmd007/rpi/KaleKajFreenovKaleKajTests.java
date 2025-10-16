@@ -1,4 +1,4 @@
-package io.github.bmd007.rpi.kale_kaj;
+package io.github.bmd007.rpi;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

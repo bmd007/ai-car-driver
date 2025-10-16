@@ -8,4 +8,16 @@ spring:
       chat:
         options:
           model: Qwen/Qwen2-VL-7B-Instruct
+    openai:
+      api-key: fake
+      base-url: http://localhost:8000
+      chat:
+        base-url: http://localhost:8000/v1/chat/completions
+        options.model: llama-32-3b-instruct
+  main:
+    banner-mode: off
 #  QWEN2_5_VL
+#Qwen/Qwen2-VL-7B-Instruct
+  http:
+    client:
+      factory: jdk

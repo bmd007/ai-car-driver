@@ -5,18 +5,20 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 @Slf4j
-@Service
+@RestController
 public class AiResource {
 
     private final TooBox toolBox;
     private final ChatClient ollamaClient;
-    private final String SYSTEM_PROMPT = """
+    private final ChatClient openAiClient;
+    private static final String SYSTEM_PROMPT = """
         You are in charge of moving a robotic car around. You will look at the video feed and decide how to move the car.
         You have access to a tool to move the car a little in the specified direction: FORWARD, BACKWARD, LEFT, RIGHT.
         You will only use the tool if you decide the car needs to move.
@@ -32,27 +34,37 @@ public class AiResource {
         say clearly when you are done and have reached your goal.
         say cleanly when you are going to use the tool and what parameters you are using.
         say clearly whe you can't use the tools too see the video feed.
+        The video feed only last 3 secs, you need to ask for a new video feed every time you want to see it.
         """;
 
-    public AiResource(TooBox toolBox, OllamaChatModel model) {
+    public AiResource(TooBox toolBox,
+                      OllamaChatModel ollamaChatModel,
+                      OpenAiChatModel openAiChatModel) {
         this.toolBox = toolBox;
-        this.ollamaClient = ChatClient.create(model)
+        openAiClient = ChatClient.create(openAiChatModel)
+            .mutate()
+            .defaultSystem(SYSTEM_PROMPT)
+            .build();
+        this.ollamaClient = ChatClient.create(ollamaChatModel)
             .mutate()
             .defaultSystem(SYSTEM_PROMPT)
             .build();
     }
 
-    @GetMapping("/request")
-    public String chat(@RequestParam String input) {
+    public record ChatRequest(String input) {
+    }
+
+    @PostMapping(path = "/chat", produces = "text/event-stream")
+    public Flux<String> chat(@RequestBody ChatRequest request) {
         var prompt = Prompt.builder()
-            .content(input)
+            .content(request.input())
             .chatOptions(ChatOptions.builder()
                 .temperature(0d)
                 .build())
             .build();
         return ollamaClient.prompt(prompt)
             .tools(toolBox)
-            .call()
+            .stream()
             .content();
     }
 }

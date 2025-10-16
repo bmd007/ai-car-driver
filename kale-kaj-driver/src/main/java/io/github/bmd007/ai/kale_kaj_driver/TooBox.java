@@ -7,6 +7,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 @Service
 public class TooBox {
 
@@ -32,15 +34,9 @@ public class TooBox {
         return webClient.post()
             .uri("/v3/video-stream")
             .retrieve()
-            .bodyToFlux(byte[].class);
-    }
-
-    @Tool(description = "Get a single image from the robot as a byte array representing a JPEG image")
-    public Mono<byte[]> takeImage() {
-        return webClient.post()
-            .uri("/image")
-            .retrieve()
-            .bodyToMono(byte[].class);
+            .bodyToFlux(byte[].class)
+            .take(Duration.ofSeconds(3))
+            .log();
     }
 
     public enum MOVE_DIRECTION {

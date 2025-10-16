@@ -1,4 +1,4 @@
-package io.github.bmd007.rpi.kale_kaj.service;
+package io.github.bmd007.rpi.service;
 
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;

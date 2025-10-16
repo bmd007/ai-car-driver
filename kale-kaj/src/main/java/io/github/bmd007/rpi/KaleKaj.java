@@ -1,7 +1,7 @@
-package io.github.bmd007.rpi.kale_kaj;
+package io.github.bmd007.rpi;
 
 import com.pi4j.Pi4J;
-import io.github.bmd007.rpi.kale_kaj.service.PCA9685;
+import io.github.bmd007.rpi.service.PCA9685;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

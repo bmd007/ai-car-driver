@@ -1,26 +1,23 @@
-package io.github.bmd007.rpi.kale_kaj;
+package io.github.bmd007.rpi;
 
-import io.github.bmd007.rpi.kale_kaj.service.MotorService;
-import io.github.bmd007.rpi.kale_kaj.service.RpiCamStill;
-import io.github.bmd007.rpi.kale_kaj.service.RpiCamVid;
-import io.github.bmd007.rpi.kale_kaj.service.ServoService;
+import io.github.bmd007.rpi.service.MotorService;
+import io.github.bmd007.rpi.service.RpiCamVid;
+import io.github.bmd007.rpi.service.ServoService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
-import static io.github.bmd007.rpi.kale_kaj.service.MotorService.MovementCommand;
+import static io.github.bmd007.rpi.service.MotorService.MovementCommand;
 
 
 @RestController

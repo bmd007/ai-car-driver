@@ -1,4 +1,4 @@
-package io.github.bmd007.rpi.kale_kaj.service;
+package io.github.bmd007.rpi.service;
 
 import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;

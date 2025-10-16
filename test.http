@@ -1,0 +1,11 @@
+### Send POST request with json body
+POST http://localhost:11434/api/chat
+Content-Type: application/json
+
+{
+  "id": 999,
+  "value": "content"
+}
+
+###
+GET http://localhost:8080/request?input="hi , what do you want see?"
