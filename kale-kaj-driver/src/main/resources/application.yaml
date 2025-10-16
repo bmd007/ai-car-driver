@@ -1,0 +1,10 @@
+spring:
+  application.name: kale-kaj-driver
+
+  ai:
+    ollama:
+      init:
+        pull-model-strategy: always
+      chat:
+        options:
+          model: Qwen/Qwen2-VL-7B-Instruct
