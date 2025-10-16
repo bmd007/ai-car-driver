@@ -8,3 +8,4 @@ spring:
       chat:
         options:
           model: Qwen/Qwen2-VL-7B-Instruct
+#  QWEN2_5_VL

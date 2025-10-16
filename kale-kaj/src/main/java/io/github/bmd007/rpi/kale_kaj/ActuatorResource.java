@@ -38,12 +38,12 @@ public class ActuatorResource {
         .setFramerate(30)
         .setVerbose(false);
 
-    private static final RpiCamStill IMAGE_CAMERA = new RpiCamStill()
-        .setDimensions(600, 800)
-        .setQuality(85)
-        .setTimeout(500)
-        .setEncoding("jpeg")
-        .setVerbose(false);
+//cant use still image camera when video camera is running
+//    private static final RpiCamStill IMAGE_CAMERA = new RpiCamStill()
+//        .setDimensions(600, 800)
+//        .setQuality(85)
+//        .setTimeout(500)
+//        .setVerbose(false);
 
     private final MotorService motorService;
     private final ServoService servoService;
@@ -101,16 +101,6 @@ public class ActuatorResource {
     @GetMapping(value = "v3/video-stream", produces = "multipart/x-mixed-replace; boundary=frame")
     public Flux<byte[]> videoStream() {
         return SINK.asFlux();
-    }
-
-    @GetMapping(value = "image", produces = MediaType.IMAGE_JPEG_VALUE)
-    public Mono<byte[]> image() {
-        return Mono.fromCallable(() -> {
-                try (InputStream is = IMAGE_CAMERA.captureToStream()) {
-                    return is.readAllBytes();
-                }
-            })
-            .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("move")

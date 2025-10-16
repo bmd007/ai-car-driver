@@ -5,6 +5,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 public class TooBox {
@@ -27,11 +28,19 @@ public class TooBox {
     }
 
     @Tool(description = "Get the video feed from the robot as a stream of byte arrays representing JPEG images")
-    public Flux<byte[]> moveTheRobot() {
+    public Flux<byte[]> videoFeed() {
         return webClient.post()
             .uri("/v3/video-stream")
             .retrieve()
             .bodyToFlux(byte[].class);
+    }
+
+    @Tool(description = "Get a single image from the robot as a byte array representing a JPEG image")
+    public Mono<byte[]> takeImage() {
+        return webClient.post()
+            .uri("/image")
+            .retrieve()
+            .bodyToMono(byte[].class);
     }
 
     public enum MOVE_DIRECTION {
