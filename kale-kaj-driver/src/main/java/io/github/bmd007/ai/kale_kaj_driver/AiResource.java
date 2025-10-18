@@ -57,7 +57,6 @@ public class AiResource {
     @PostMapping(path = "/agent", produces = "text/event-stream")
     public Flux<String> agent(@RequestBody ChatRequest request) {
         messages.clear();
-        messages.add(request.input());
         return rpiService.image()
             .subscribeOn(Schedulers.boundedElastic())
             .map(s -> Media.builder()
@@ -74,6 +73,7 @@ public class AiResource {
                     .temperature(0d)
                     .build())
                 .build())
+            .doOnNext(p -> messages.add(p.toString()))
             .flatMapMany(prompt ->
                 ollamaClient.prompt(prompt)
                     .stream()
