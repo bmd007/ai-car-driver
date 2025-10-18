@@ -52,7 +52,9 @@ public class RpiService {
             .uri("/v3/capture-image")
             .retrieve()
             .bodyToMono(byte[].class)
-            .map(Base64.getEncoder()::encodeToString);
+            .map(Base64.getEncoder()::encodeToString)
+            .retry(2)
+            .onErrorReturn(Base64.getEncoder().encodeToString("Failed to capture image. will try again.".getBytes()));
     }
 
     public enum MOVE_DIRECTION {
