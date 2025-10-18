@@ -39,6 +39,7 @@ public class AiResource {
         Example valid responses: "FORWARD", "LEFT, LEFT, FORWARD", "FORWARD, RIGHT, FORWARD, LEFT".
         When you reach the goal, respond with "STOP". But only when you are sure you have reached the goal.
         Not at all before that.
+        If your goal is to move forward, for example, don't respond with STOP until you can't move forward anymore.
         """;
 
     public AiResource(RpiService rpiService, OllamaChatModel ollamaChatModel) {
@@ -57,6 +58,7 @@ public class AiResource {
     @PostMapping(path = "/agent", produces = "text/event-stream")
     public Flux<String> agent(@RequestBody ChatRequest request) {
         messages.clear();
+        messages.add(request.input());
         return rpiService.image()
             .subscribeOn(Schedulers.boundedElastic())
             .map(s -> Media.builder()
