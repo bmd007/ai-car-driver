@@ -37,7 +37,8 @@ public class AiResource {
         If you want to car to move more than one step, repeat the directions as many times as needed, separating them by commas.
         LEFT, RIGHT, FORWARD, BACKWARD are the only valid directions. They must be in one word.
         Example valid responses: "FORWARD", "LEFT, LEFT, FORWARD", "FORWARD, RIGHT, FORWARD, LEFT".
-        If you have reached the goal, respond with "STOP".
+        When you reach the goal, respond with "STOP". But only when you are sure you have reached the goal.
+        Not at all before that.
         """;
 
     public AiResource(RpiService rpiService, OllamaChatModel ollamaChatModel) {
