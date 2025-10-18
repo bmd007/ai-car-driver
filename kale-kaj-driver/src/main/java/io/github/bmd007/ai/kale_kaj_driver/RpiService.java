@@ -1,0 +1,65 @@
+package io.github.bmd007.ai.kale_kaj_driver;
+
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Base64;
+
+@Slf4j
+@Service
+public class RpiService {
+
+    private final WebClient client;
+
+    public RpiService(WebClient.Builder webClientBuilder) {
+        this.client = webClientBuilder
+            .baseUrl("https://kalekaj-bmd.eu1.pitunnel.net")
+            .exchangeStrategies(ExchangeStrategies.builder()
+                .codecs(codecs -> codecs.defaultCodecs()
+                    .maxInMemorySize(1024 * 1024 * 100) // 10 MB
+                )
+                .build()
+            )
+            .build();
+    }
+
+    public void moveTheRobot(MOVE_DIRECTION direction) {
+        client.post()
+            .uri("/move?command=" + direction.name())
+            .retrieve()
+            .bodyToMono(Void.class)
+            .subscribe();
+    }
+
+    public Flux<String> videoFeed() {
+        return client.get()
+            .uri("/v3/video-stream")
+            .retrieve()
+            .bodyToFlux(byte[].class)
+            .map(Base64.getEncoder()::encodeToString)
+            .take(10);
+    }
+
+    @Tool(description = "Get a picture from the robot front first person camera, as a base64 string representing byte arrays representing JPEG image")
+    public Mono<String> image() {
+        return client.get()
+            .uri("/v3/capture-image")
+            .retrieve()
+            .bodyToMono(byte[].class)
+            .map(Base64.getEncoder()::encodeToString);
+    }
+
+    public enum MOVE_DIRECTION {
+        FORWARD,
+        BACKWARD,
+        LEFT,
+        RIGHT,
+    }
+}
+

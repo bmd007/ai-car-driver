@@ -1,16 +1,17 @@
 package io.github.bmd007.rpi;
 
 import io.github.bmd007.rpi.service.MotorService;
+import io.github.bmd007.rpi.service.RpiCamStill;
 import io.github.bmd007.rpi.service.RpiCamVid;
 import io.github.bmd007.rpi.service.ServoService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
@@ -35,12 +36,12 @@ public class ActuatorResource {
         .setFramerate(30)
         .setVerbose(false);
 
-//cant use still image camera when video camera is running
-//    private static final RpiCamStill IMAGE_CAMERA = new RpiCamStill()
-//        .setDimensions(600, 800)
-//        .setQuality(85)
-//        .setTimeout(500)
-//        .setVerbose(false);
+    //cant use still image camera when video camera is running
+    private static final RpiCamStill IMAGE_CAMERA = new RpiCamStill()
+        .setDimensions(600, 800)
+        .setQuality(100)
+        .setTimeout(5)
+        .setVerbose(false);
 
     private final MotorService motorService;
     private final ServoService servoService;
@@ -50,7 +51,7 @@ public class ActuatorResource {
         this.servoService = servoService;
     }
 
-    @EventListener(ApplicationReadyEvent.class)
+    //    @EventListener(ApplicationReadyEvent.class)
     public void start() {
         if (!RpiCamVid.isAvailable()) {
             System.err.println("rpicam-vid not available or unsupported hardware version.");
@@ -80,7 +81,7 @@ public class ActuatorResource {
 
                                     SINK.tryEmitNext(header.getBytes());
                                     SINK.tryEmitNext(imageBytes);
-                                    SINK.tryEmitNext("\r\n" .getBytes());
+                                    SINK.tryEmitNext("\r\n".getBytes());
 
                                     frameBuffer.reset();
                                 }
@@ -98,6 +99,19 @@ public class ActuatorResource {
     @GetMapping(value = "v3/video-stream", produces = "multipart/x-mixed-replace; boundary=frame")
     public Flux<byte[]> videoStream() {
         return SINK.asFlux();
+    }
+
+    @GetMapping(value = "v3/capture-image", produces = MediaType.IMAGE_JPEG_VALUE)
+    public Mono<byte[]> captureImage() {
+        if (!RpiCamStill.isAvailable()) {
+            throw new IllegalStateException("rpicam-still not available or unsupported hardware version.");
+        }
+        return Mono.fromCallable(() -> {
+                try (InputStream videoStream = IMAGE_CAMERA.captureToStream()) {
+                    return videoStream.readAllBytes();
+                }
+            })
+            .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("move")

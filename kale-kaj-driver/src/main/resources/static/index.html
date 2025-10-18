@@ -46,6 +46,19 @@
             </button>
         </div>
     </div>
+
+    <div id="capture-panel"
+         style="border: 8px solid #1e90ff; padding: 4px; background: #eaf4ff; display: flex; flex-direction: column; align-items: center; border-radius: 16px; box-shadow: 0 4px 24px rgba(30,144,255,0.12);">
+        <img id="captured-image" src="" alt="Captured Image"
+             style="max-width: 600px; max-height: 600px; display: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(30,144,255,0.10); margin-bottom: 12px;">
+        <div id="capture-loading" style="display: none; color: #1e90ff; font-weight: bold; margin-bottom: 8px;">
+            Capturing...
+        </div>
+        <button id="capture-btn"
+                style="background: linear-gradient(90deg,#1e90ff 60%,#8ecfff 100%); color: white; border: none; border-radius: 8px; padding: 0 24px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(30,144,255,0.12); transition: background 0.2s;">
+            📸 Capture Image
+        </button>
+    </div>
 </div>
 
 <script>
@@ -58,34 +71,42 @@
         chatOutput.scrollTop = chatOutput.scrollHeight;
     }
 
-    async function startChatStream(input) {
+    async function startChat(input) {
         chatOutput.textContent = '';
-        const response = await fetch('/chat', {
+        const response = await fetch('/agent', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'Accept': 'text/event-stream'},
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({input})
         });
 
-        if (!response.body) {
-            appendToOutput('⚠️ No response stream.');
-            return;
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-            const {value, done} = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, {stream: true});
-            let lines = buffer.split('\n');
-            buffer = lines.pop();
-            for (const line of lines) {
-                if (line.startsWith('data:')) {
-                    appendToOutput(line.slice(5) + ' ');
+        const contentType = response.headers.get('Content-Type');
+        if (contentType && contentType.includes('application/json')) {
+            // Single JSON response
+            const data = await response.json();
+            appendToOutput(data.response || '⚠️ No response.');
+        } else if (contentType && contentType.includes('text/event-stream')) {
+            // SSE stream
+            if (!response.body) {
+                appendToOutput('⚠️ No response stream.');
+                return;
+            }
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            while (true) {
+                const {value, done} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+                let lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        appendToOutput(line.slice(5) + ' ');
+                    }
                 }
             }
+        } else {
+            appendToOutput('⚠️ Unknown response type.');
         }
     }
 
@@ -94,7 +115,7 @@
         if (!input) return;
         chatSend.disabled = true;
         chatInput.disabled = true;
-        await startChatStream(input);
+        await startChat(input);
         chatSend.disabled = false;
         chatInput.disabled = false;
         chatInput.value = '';
@@ -111,6 +132,29 @@
                 img.src = 'v3/video-stream?ts=' + Date.now();
             }, 1000);
         });
+
+    const captureBtn = document.getElementById('capture-btn');
+    const capturedImage = document.getElementById('captured-image');
+    const captureLoading = document.getElementById('capture-loading');
+
+    captureBtn.onclick = async function () {
+        captureBtn.disabled = true;
+        captureLoading.style.display = 'block';
+        capturedImage.style.display = 'none';
+        try {
+            const response = await fetch('https://kalekaj-bmd.eu1.pitunnel.net/v3/capture-image');
+            if (!response.ok) throw new Error('Failed to capture image');
+            const blob = await response.blob();
+            capturedImage.src = URL.createObjectURL(blob);
+            capturedImage.style.display = 'block';
+        } catch (e) {
+            captureLoading.textContent = '⚠️ Error capturing image';
+        } finally {
+            captureBtn.disabled = false;
+            captureLoading.style.display = 'none';
+            captureLoading.textContent = 'Capturing...';
+        }
+    };
 </script>
 
 </body>

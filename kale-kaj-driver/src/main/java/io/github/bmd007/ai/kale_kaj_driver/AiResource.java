@@ -2,69 +2,92 @@ package io.github.bmd007.ai.kale_kaj_driver;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.content.Media;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
+
+import java.util.Arrays;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @RestController
 public class AiResource {
 
-    private final TooBox toolBox;
+    private final RpiService rpiService;
     private final ChatClient ollamaClient;
-    private final ChatClient openAiClient;
-    private static final String SYSTEM_PROMPT = """
-        You are in charge of moving a robotic car around. You will look at the video feed and decide how to move the car.
-        You have access to a tool to move the car a little in the specified direction: FORWARD, BACKWARD, LEFT, RIGHT.
-        You will only use the tool if you decide the car needs to move.
-        You will not move the car if it is already moving.
-        You will not move the car if there is an obstacle in front of it.
-        You will not move the car if it is too close to an obstacle.
-        You will be asked to use achieve some goal, liking reaching a specific object in the video feed.
-        You will be provided with a video feed from the car.
-        Use what you see in the video feed to decide how to move the car.
-        Always think step by step and decide what to do.
-        Always describe what you see in the video feed.
-        Always describe your reasoning before you decide to use the tool.
-        say clearly when you are done and have reached your goal.
-        say cleanly when you are going to use the tool and what parameters you are using.
-        say clearly whe you can't use the tools too see the video feed.
-        The video feed only last 3 secs, you need to ask for a new video feed every time you want to see it.
+    private static final String SYSTEM_PROMPT2 = """
+        You are in charge of moving a robotic car around.
+        You will be asked to use achieve some goal, like reaching a specific object.
+        You have be given an image from the car's camera.
+        Which feels like a first person view from the car.
+        Use the image to see what is in front of the car and decide how to move the car.
+        Say clearly when you can't use the tools too see the image.
+        Otherwise, your response must only be a DIRECTION, a specified direction: FORWARD, BACKWARD, LEFT, RIGHT.
+        DO NOT RESPOND WITH ANYTHING ELSE.
+        If you want to car to move more than one step, repeat the directions as many times as needed, separating them by commas.
+        LEFT, RIGHT, FORWARD, BACKWARD are the only valid directions. They must be in one word.
+        Example valid responses: "FORWARD", "LEFT, LEFT, FORWARD", "FORWARD, RIGHT, FORWARD, LEFT"
         """;
 
-    public AiResource(TooBox toolBox,
-                      OllamaChatModel ollamaChatModel,
-                      OpenAiChatModel openAiChatModel) {
-        this.toolBox = toolBox;
-        openAiClient = ChatClient.create(openAiChatModel)
-            .mutate()
-            .defaultSystem(SYSTEM_PROMPT)
-            .build();
+    public AiResource(RpiService rpiService, OllamaChatModel ollamaChatModel) {
+        this.rpiService = rpiService;
         this.ollamaClient = ChatClient.create(ollamaChatModel)
             .mutate()
-            .defaultSystem(SYSTEM_PROMPT)
+            .defaultSystem(SYSTEM_PROMPT2)
             .build();
     }
 
     public record ChatRequest(String input) {
     }
 
-    @PostMapping(path = "/chat", produces = "text/event-stream")
-    public Flux<String> chat(@RequestBody ChatRequest request) {
-        var prompt = Prompt.builder()
-            .content(request.input())
-            .chatOptions(ChatOptions.builder()
-                .temperature(0d)
+    private final Set<String> messages = ConcurrentHashMap.newKeySet();
+
+    @PostMapping(path = "/agent", produces = "text/event-stream")
+    public Flux<String> agent(@RequestBody ChatRequest request) {
+        return rpiService.image()
+            .subscribeOn(Schedulers.boundedElastic())
+            .map(s -> Media.builder()
+                .mimeType(MediaType.IMAGE_JPEG)
+                .data(s)
                 .build())
-            .build();
-        return ollamaClient.prompt(prompt)
-            .tools(toolBox)
-            .stream()
-            .content();
+            .map(media -> new UserMessage(request.input())
+                .mutate()
+                .media(media)
+                .build())
+            .map(msg -> Prompt.builder()
+                .messages(msg)
+                .chatOptions(ChatOptions.builder()
+                    .temperature(0d)
+                    .build())
+                .build())
+            .flatMapMany(prompt ->
+                ollamaClient.prompt(prompt)
+                    .stream()
+                    .content()
+                    .collectList()
+            )
+            .map(list -> String.join("", list))
+            .map(String::trim)
+            .map(String::toUpperCase)
+            .flatMapIterable(moves -> Arrays.asList(moves.split(",")))
+            .map(String::trim)
+            .publishOn(Schedulers.boundedElastic())
+            .doOnNext(move -> {
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                rpiService.moveTheRobot(RpiService.MOVE_DIRECTION.valueOf(move));
+            });
     }
 }

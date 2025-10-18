@@ -1,42 +1,49 @@
 package io.github.bmd007.ai.kale_kaj_driver;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
+import java.util.Base64;
 
-@Service
+@Slf4j
+//@Service
 public class TooBox {
 
-    private final WebClient webClient;
+    private final RestClient client;
 
-    public TooBox(WebClient.Builder webClientBuilder) {
-        webClient = webClientBuilder
+    public TooBox(RestClient.Builder webClientBuilder) {
+        this.client = webClientBuilder
             .baseUrl("https://kalekaj-bmd.eu1.pitunnel.net")
             .build();
     }
 
     @Tool(description = "Move the robot a little in the specified direction: FORWARD, BACKWARD, LEFT, RIGHT")
     public void moveTheRobot(MOVE_DIRECTION direction) {
-        webClient.post()
+        client.post()
             .uri("/move?command=" + direction.name())
-            .retrieve()
-            .bodyToMono(String.class)
-            .block();
+            .retrieve();
     }
 
-    @Tool(description = "Get the video feed from the robot as a stream of byte arrays representing JPEG images")
-    public Flux<byte[]> videoFeed() {
-        return webClient.post()
-            .uri("/v3/video-stream")
+//    @Tool(description = "Get the video feed from the robot front first person camera, as a stream of base64 string representing byte arrays representing video frames")
+//    public Flux<String> videoFeed() {
+//        return webClient.get()
+//            .uri("/v3/video-stream")
+//            .retrieve()
+//            .bodyToFlux(byte[].class)
+//            .map(Base64.getEncoder()::encodeToString)
+//            .take(10);
+//    }
+
+    @Tool(description = "Get a picture from the robot front first person camera, as a base64 string representing byte arrays representing JPEG image")
+    public String image() {
+        var bytes = client.get()
+            .uri("/v3/capture-image")
             .retrieve()
-            .bodyToFlux(byte[].class)
-            .take(Duration.ofSeconds(3))
-            .log();
+            .body(byte[].class);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     public enum MOVE_DIRECTION {
