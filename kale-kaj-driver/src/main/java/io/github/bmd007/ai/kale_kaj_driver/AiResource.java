@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -35,7 +37,8 @@ public class AiResource {
         DO NOT RESPOND WITH ANYTHING ELSE.
         If you want to car to move more than one step, repeat the directions as many times as needed, separating them by commas.
         LEFT, RIGHT, FORWARD, BACKWARD are the only valid directions. They must be in one word.
-        Example valid responses: "FORWARD", "LEFT, LEFT, FORWARD", "FORWARD, RIGHT, FORWARD, LEFT"
+        Example valid responses: "FORWARD", "LEFT, LEFT, FORWARD", "FORWARD, RIGHT, FORWARD, LEFT".
+        If you have reached the goal, respond with "STOP".
         """;
 
     public AiResource(RpiService rpiService, OllamaChatModel ollamaChatModel) {
@@ -53,13 +56,15 @@ public class AiResource {
 
     @PostMapping(path = "/agent", produces = "text/event-stream")
     public Flux<String> agent(@RequestBody ChatRequest request) {
+        messages.clear();
+        messages.add(request.input());
         return rpiService.image()
             .subscribeOn(Schedulers.boundedElastic())
             .map(s -> Media.builder()
                 .mimeType(MediaType.IMAGE_JPEG)
                 .data(s)
                 .build())
-            .map(media -> new UserMessage(request.input())
+            .map(media -> new UserMessage(String.join("\n - ", messages))
                 .mutate()
                 .media(media)
                 .build())
@@ -78,16 +83,20 @@ public class AiResource {
             .map(list -> String.join("", list))
             .map(String::trim)
             .map(String::toUpperCase)
+            .doOnNext(messages::add)
             .flatMapIterable(moves -> Arrays.asList(moves.split(",")))
             .map(String::trim)
             .publishOn(Schedulers.boundedElastic())
-            .doOnNext(move -> {
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                rpiService.moveTheRobot(RpiService.MOVE_DIRECTION.valueOf(move));
-            });
+            .delayUntil(move ->
+                Mono.fromRunnable(() -> {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    rpiService.moveTheRobot(RpiService.MOVE_DIRECTION.valueOf(move));
+                })
+            )
+            .repeat(1000, () -> !messages.contains("STOP"));
     }
 }
