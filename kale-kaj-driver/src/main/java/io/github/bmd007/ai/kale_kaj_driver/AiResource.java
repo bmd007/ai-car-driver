@@ -18,7 +18,6 @@ import reactor.core.scheduler.Schedulers;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -94,7 +93,9 @@ public class AiResource {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                    rpiService.moveTheRobot(RpiService.MOVE_DIRECTION.valueOf(move));
+                    if (RpiService.MOVE_DIRECTION.isMoveCommand(move)) {
+                        rpiService.moveTheRobot(RpiService.MOVE_DIRECTION.valueOf(move));
+                    }
                 })
             )
             .repeat(1000, () -> !messages.contains("STOP"));

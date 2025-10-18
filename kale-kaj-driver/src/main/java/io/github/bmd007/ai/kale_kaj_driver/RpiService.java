@@ -61,7 +61,14 @@ public class RpiService {
         FORWARD,
         BACKWARD,
         LEFT,
-        RIGHT,
+        RIGHT;
+
+        public static boolean isMoveCommand(String command) {
+            return command != null && (command.equals(FORWARD.name()) ||
+                command.equals(BACKWARD.name()) ||
+                command.equals(LEFT.name()) ||
+                command.equals(RIGHT.name()));
+        }
     }
 }
 
