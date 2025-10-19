@@ -36,7 +36,8 @@ public class AiResource {
     private final ChatClient ollamaClient;
     private final ObjectMapper objectMapper;
 
-    private final Sinks.Many<byte[]> imageSink = Sinks.many().multicast().onBackpressureBuffer();
+    private final Sinks.Many<byte[]> imageSink = Sinks.many().multicast()
+        .onBackpressureBuffer(1, false);
 
     private static final String SYSTEM_PROMPT = """
         You are controlling a robotic car with a front-facing camera.
