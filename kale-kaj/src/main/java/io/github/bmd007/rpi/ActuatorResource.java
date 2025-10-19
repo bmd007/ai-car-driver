@@ -19,6 +19,8 @@ import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.github.bmd007.rpi.service.MotorService.MovementCommand;
 
@@ -31,8 +33,10 @@ public class ActuatorResource {
         .multicast()
         .onBackpressureBuffer(4, false);
 
+    private static final AtomicReference<byte[]> LATEST_FRAME = new AtomicReference<>();
+
     private static final RpiCamVid VIDEO_CAMERA = new RpiCamVid()
-        .setDimensions(600, 600)
+        .setDimensions(640, 480) // Lower resolution = faster processing
         .setTimeout(Integer.MAX_VALUE)
         .setEncoding("mjpeg")
         .setFramerate(30)
@@ -53,7 +57,7 @@ public class ActuatorResource {
         this.servoService = servoService;
     }
 
-//    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ApplicationReadyEvent.class)
     public void start() {
         if (!RpiCamVid.isAvailable()) {
             System.err.println("rpicam-vid not available or unsupported hardware version.");
@@ -79,6 +83,10 @@ public class ActuatorResource {
                                     i++;
                                     inFrame = false;
                                     byte[] imageBytes = frameBuffer.toByteArray();
+
+                                    // Store the latest frame for capture-image endpoint
+                                    LATEST_FRAME.set(imageBytes);
+
                                     String header = "--frame\r\nContent-Type: image/jpeg\r\n\r\n";
 
                                     SINK.tryEmitNext(header.getBytes());
@@ -105,23 +113,25 @@ public class ActuatorResource {
 
     @GetMapping(value = "v3/capture-image", produces = MediaType.IMAGE_JPEG_VALUE)
     public Mono<byte[]> captureImage() {
-        if (!RpiCamStill.isAvailable()) {
-            throw new IllegalStateException("rpicam-still not available or unsupported hardware version.");
-        }
-        return Mono.fromCallable(() -> {
-                try (InputStream videoStream = IMAGE_CAMERA.captureToStream()) {
-                    return videoStream.readAllBytes();
+        return Mono.defer(() -> {
+                byte[] frame = LATEST_FRAME.get();
+                if (frame == null) {
+                    return Mono.error(new IllegalStateException("No video frame available yet. Please wait for video stream to start."));
                 }
+                return Mono.just(frame);
             })
+            .timeout(Duration.ofSeconds(5))
             .subscribeOn(Schedulers.boundedElastic());
     }
 
+    //todo add rate limited, one request per second
     @PostMapping("move")
     public void move(@RequestParam String command) {
         var movement = MovementCommand.valueOf(command.trim().toUpperCase());
         motorService.move(movement);
     }
 
+    //todo add rate limited, one request per second
     @PostMapping("rotate-head")
     public void rotateHead(@RequestParam String channel, @RequestParam int angle) {
         servoService.setServoPwm(channel, angle);

@@ -27,6 +27,25 @@
 </head>
 <body>
 <div id="main-container">
+    <div style="flex: 1;">
+        <div id="video-frame3" style="border: 8px solid green; padding: 4px; background: #eaffea;">
+            <h2 style="color: #4e9a06; margin-bottom: 16px; font-family: 'Segoe UI', sans-serif;">🤖 Camera feed</h2>
+            <img id="video-stream3" src="https://kalekaj-bmd.eu1.pitunnel.net/v3/video-stream"
+                 style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
+        </div>
+        <div id="capture-panel"
+             style="border: 8px solid #1e90ff; padding: 4px; background: #eaf4ff; display: flex; flex-direction: column; align-items: center; border-radius: 16px; box-shadow: 0 4px 24px rgba(30,144,255,0.12);">
+            <img id="captured-image" src="" alt="Captured Image"
+                 style="max-width: 600px; max-height: 600px; display: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(30,144,255,0.10); margin-bottom: 12px;">
+            <div id="capture-loading" style="display: none; color: #1e90ff; font-weight: bold; margin-bottom: 8px;">
+                Capturing...
+            </div>
+            <button id="capture-btn"
+                    style="background: linear-gradient(90deg,#1e90ff 60%,#8ecfff 100%); color: white; border: none; border-radius: 8px; padding: 0 24px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(30,144,255,0.12); transition: background 0.2s;">
+                📸 Capture Image
+            </button>
+        </div>
+    </div>
     <div id="chat-panel"
          style="border: 8px solid #4e9a06; background: #f6fff6; border-radius: 16px; box-shadow: 0 4px 24px rgba(78,154,6,0.15); max-width: 600px; padding: 24px;">
         <h2 style="color: #4e9a06; margin-bottom: 16px; font-family: 'Segoe UI', sans-serif;">🤖 AI Chat Panel</h2>
@@ -50,19 +69,6 @@
         <div id="llm-image-placeholder" style="color: #9b59b6; padding: 20px; text-align: center;">
             Waiting for AI processing...
         </div>
-    </div>
-
-    <div id="capture-panel"
-         style="border: 8px solid #1e90ff; padding: 4px; background: #eaf4ff; display: flex; flex-direction: column; align-items: center; border-radius: 16px; box-shadow: 0 4px 24px rgba(30,144,255,0.12);">
-        <img id="captured-image" src="" alt="Captured Image"
-             style="max-width: 600px; max-height: 600px; display: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(30,144,255,0.10); margin-bottom: 12px;">
-        <div id="capture-loading" style="display: none; color: #1e90ff; font-weight: bold; margin-bottom: 8px;">
-            Capturing...
-        </div>
-        <button id="capture-btn"
-                style="background: linear-gradient(90deg,#1e90ff 60%,#8ecfff 100%); color: white; border: none; border-radius: 8px; padding: 0 24px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(30,144,255,0.12); transition: background 0.2s;">
-            📸 Capture Image
-        </button>
     </div>
 </div>
 
@@ -104,11 +110,11 @@
             const reader = response.body.getReader();
 
             while (true) {
-                const { value, done } = await reader.read();
+                const {value, done} = await reader.read();
                 if (done) break;
 
                 // value is Uint8Array of image bytes
-                const blob = new Blob([value], { type: 'image/jpeg' });
+                const blob = new Blob([value], {type: 'image/jpeg'});
                 llmImage.src = URL.createObjectURL(blob);
                 llmImage.style.display = 'block';
                 llmImagePlaceholder.style.display = 'none';
