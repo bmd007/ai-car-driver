@@ -89,6 +89,10 @@ public class AiResource {
         String thought,
         List<String> actions,
         boolean completed) {
+
+        public String pritable(){
+            return actions + " | " + thought;
+        }
     }
 
     @GetMapping(path = "/llm-image-stream", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
@@ -109,7 +113,7 @@ public class AiResource {
                 executeAgentStep(request.goal(), conversationHistory, iteration)
             )
             .takeUntil(AgentStep::completed)
-            .map(AgentStep::thought)
+            .map(AgentStep::pritable)
             .doOnComplete(() -> log.info("Agent completed goal"))
             .doOnError(e -> log.error("Agent error", e));
     }

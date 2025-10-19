@@ -82,7 +82,7 @@
     let llmImageAbortController = null;
 
     function appendToOutput(text) {
-        chatOutput.innerHTML += text.replace(/\n/g, '<br>');
+        chatOutput.innerHTML += text.replace(/\n/g, '<br> <br>');
         chatOutput.scrollTop = chatOutput.scrollHeight;
     }
 
@@ -168,7 +168,7 @@
                 buffer = lines.pop();
                 for (const line of lines) {
                     if (line.startsWith('data:')) {
-                        appendToOutput(line.slice(5) + ' \n');
+                        appendToOutput('--> ' + line.slice(5) + ' \n');
                     }
                 }
             }
