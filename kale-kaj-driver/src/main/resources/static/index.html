@@ -27,11 +27,6 @@
 </head>
 <body>
 <div id="main-container">
-    <div id="video-frame3" style="border: 8px solid green; padding: 4px; background: #eaffea;">
-        <img id="video-stream3" src="https://kalekaj-bmd.eu1.pitunnel.net/v3/video-stream"
-             style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
-    </div>
-
     <div id="chat-panel"
          style="border: 8px solid #4e9a06; background: #f6fff6; border-radius: 16px; box-shadow: 0 4px 24px rgba(78,154,6,0.15); max-width: 600px; padding: 24px;">
         <h2 style="color: #4e9a06; margin-bottom: 16px; font-family: 'Segoe UI', sans-serif;">🤖 AI Chat Panel</h2>
@@ -44,6 +39,16 @@
                     style="background: linear-gradient(90deg,#4e9a06 60%,#8ae234 100%); color: white; border: none; border-radius: 8px; padding: 0 24px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(78,154,6,0.12); transition: background 0.2s;">
                 Send
             </button>
+        </div>
+    </div>
+
+    <div id="llm-image-panel"
+         style="border: 8px solid #9b59b6; padding: 4px; background: #f3e8ff; display: flex; flex-direction: column; align-items: center; border-radius: 16px; box-shadow: 0 4px 24px rgba(155,89,182,0.12);">
+        <h3 style="color: #9b59b6; margin: 8px 0; font-family: 'Segoe UI', sans-serif;">🧠 LLM Vision</h3>
+        <img id="llm-image" src="" alt="LLM Image"
+             style="max-width: 600px; max-height: 600px; display: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(155,89,182,0.10);">
+        <div id="llm-image-placeholder" style="color: #9b59b6; padding: 20px; text-align: center;">
+            Waiting for AI processing...
         </div>
     </div>
 
@@ -65,14 +70,71 @@
     const chatOutput = document.getElementById('chat-output');
     const chatInput = document.getElementById('chat-input');
     const chatSend = document.getElementById('chat-send');
+    const llmImage = document.getElementById('llm-image');
+    const llmImagePlaceholder = document.getElementById('llm-image-placeholder');
+
+    let llmImageEventSource = null;
+    let llmImageAbortController = null;
 
     function appendToOutput(text) {
         chatOutput.textContent += text;
         chatOutput.scrollTop = chatOutput.scrollHeight;
     }
 
+    async function startLlmImageStream() {
+        // Close existing connection if any
+        if (llmImageAbortController) {
+            llmImageAbortController.abort();
+        }
+
+        llmImagePlaceholder.style.display = 'block';
+        llmImage.style.display = 'none';
+
+        llmImageAbortController = new AbortController();
+
+        try {
+            const response = await fetch('/llm-image-stream', {
+                signal: llmImageAbortController.signal
+            });
+
+            if (!response.body) {
+                llmImagePlaceholder.textContent = '⚠️ No stream available';
+                return;
+            }
+
+            const reader = response.body.getReader();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                // value is Uint8Array of image bytes
+                const blob = new Blob([value], { type: 'image/jpeg' });
+                llmImage.src = URL.createObjectURL(blob);
+                llmImage.style.display = 'block';
+                llmImagePlaceholder.style.display = 'none';
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('LLM image stream error:', error);
+                llmImagePlaceholder.textContent = '⚠️ Stream disconnected';
+            }
+        }
+    }
+
+    function stopLlmImageStream() {
+        if (llmImageAbortController) {
+            llmImageAbortController.abort();
+            llmImageAbortController = null;
+        }
+    }
+
     async function startChat(input) {
         chatOutput.textContent = '';
+
+        // Start the image stream when chat begins
+        startLlmImageStream();
+
         const response = await fetch('/agent', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -101,13 +163,16 @@
                 buffer = lines.pop();
                 for (const line of lines) {
                     if (line.startsWith('data:')) {
-                        appendToOutput(line.slice(5) + ' ');
+                        appendToOutput(line.slice(5) + ' \n');
                     }
                 }
             }
         } else {
             appendToOutput('⚠️ Unknown response type.');
         }
+
+        // Stop the image stream when chat completes
+        stopLlmImageStream();
     }
 
     chatSend.onclick = async function () {

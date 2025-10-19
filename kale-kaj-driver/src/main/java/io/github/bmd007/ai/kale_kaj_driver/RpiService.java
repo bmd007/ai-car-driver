@@ -47,14 +47,13 @@ public class RpiService {
     }
 
     @Tool(description = "Get a picture from the robot front first person camera, as a base64 string representing byte arrays representing JPEG image")
-    public Mono<String> image() {
+    public Mono<byte[]> image() {
         return client.get()
             .uri("/v3/capture-image")
             .retrieve()
             .bodyToMono(byte[].class)
-            .map(Base64.getEncoder()::encodeToString)
             .retry(2)
-            .onErrorReturn(Base64.getEncoder().encodeToString("Failed to capture image. will try again.".getBytes()));
+            .onErrorReturn(new byte[]{});
     }
 
     public enum MOVE_DIRECTION {

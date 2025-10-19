@@ -11,16 +11,18 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
@@ -33,6 +35,8 @@ public class AiResource {
     private final RpiService rpiService;
     private final ChatClient ollamaClient;
     private final ObjectMapper objectMapper;
+
+    private final Sinks.Many<byte[]> imageSink = Sinks.many().multicast().onBackpressureBuffer();
 
     private static final String SYSTEM_PROMPT = """
         You are controlling a robotic car with a front-facing camera.
@@ -61,7 +65,7 @@ public class AiResource {
         - {"thought": "Approaching the target on the right", "actions": ["FORWARD", "RIGHT", "FORWARD"]}
         - {"thought": "Goal achieved - reached destination", "actions": []}
         
-        Remember: Only respond with valid JSON, nothing else.
+        Remember: Only and only and only respond with valid JSON, nothing else.
         """;
 
     public record LlmResponse(String thought, List<String> actions) {
@@ -85,6 +89,13 @@ public class AiResource {
         String thought,
         List<String> actions,
         boolean completed) {
+    }
+
+    @GetMapping(path = "/llm-image-stream", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public Flux<byte[]> llmImageStream() {
+        log.info("New subscriber to LLM image stream");
+        return imageSink.asFlux()
+            .doOnCancel(() -> log.info("LLM image stream subscriber cancelled"));
     }
 
     @PostMapping(path = "/agent", produces = "text/event-stream")
@@ -118,7 +129,12 @@ public class AiResource {
     private Mono<AgentStep> captureAndAnalyze(String goal, List<Message> history, int iteration) {
         return rpiService.image()
             .subscribeOn(Schedulers.boundedElastic())
-            .flatMap(base64Image -> {
+            .flatMap(imageBytes -> {
+                // Emit raw image bytes to all subscribers
+                imageSink.tryEmitNext(imageBytes);
+
+                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
                 Media media = Media.builder()
                     .mimeType(MediaType.IMAGE_JPEG)
                     .data(base64Image)
