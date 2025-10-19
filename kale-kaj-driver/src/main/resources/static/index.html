@@ -73,11 +73,10 @@
     const llmImage = document.getElementById('llm-image');
     const llmImagePlaceholder = document.getElementById('llm-image-placeholder');
 
-    let llmImageEventSource = null;
     let llmImageAbortController = null;
 
     function appendToOutput(text) {
-        chatOutput.textContent += text;
+        chatOutput.innerHTML += text.replace(/\n/g, '<br>');
         chatOutput.scrollTop = chatOutput.scrollHeight;
     }
 
