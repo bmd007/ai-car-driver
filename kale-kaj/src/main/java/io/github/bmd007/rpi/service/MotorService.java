@@ -19,7 +19,7 @@ public class MotorService {
         Mono.fromRunnable(() -> {
                 setMotorModel(duties[0], duties[1], duties[2], duties[3]);
                 try {
-                    Thread.sleep(300);
+                    Thread.sleep(700);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

@@ -1,5 +1,6 @@
 package io.github.bmd007.ai.kale_kaj_driver;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -20,6 +21,7 @@ import reactor.core.scheduler.Schedulers;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -27,9 +29,11 @@ import java.util.List;
 public class AiResource {
 
     private static final int MAX_ITERATIONS = 10;
-    private static final long MOVE_DELAY_MS = 200l;
+    private static final long MOVE_DELAY_MS = 100;
     private final RpiService rpiService;
     private final ChatClient ollamaClient;
+    private final ObjectMapper objectMapper;
+
     private static final String SYSTEM_PROMPT = """
         You are controlling a robotic car with a front-facing camera.
         
@@ -39,27 +43,37 @@ public class AiResource {
         Based on what you see, decide the next move(s) to achieve the goal.
         
         RULES:
-        - Respond ONLY with directions: FORWARD, BACKWARD, LEFT, RIGHT
-        - You can chain multiple moves with commas: "FORWARD, LEFT, FORWARD"
-        - When you've achieved the goal, respond with: "STOP"
-        - Do NOT respond with STOP until the goal is fully achieved
+        - Respond ONLY with valid JSON in this exact format:
+          {
+            "thought": "your analysis of what you see and why you're taking these actions",
+            "actions": ["FORWARD", "LEFT", "FORWARD"]
+          }
+        - Available actions: FORWARD, BACKWARD, LEFT, RIGHT
+        - When you've achieved the goal, use an empty actions array: {"thought": "goal achieved", "actions": []}
+        - Do NOT use empty actions array until the goal is fully achieved
         - If you can't see clearly or need more information, make your best guess based on what's visible
         - Be decisive - analyze the image and commit to a direction
+        - Your response must be valid JSON only, no additional text
         
         Example valid responses:
-        - "FORWARD"
-        - "LEFT, LEFT, FORWARD"
-        - "FORWARD, RIGHT, FORWARD"
-        - "STOP"
+        - {"thought": "I see an open path ahead", "actions": ["FORWARD"]}
+        - {"thought": "Need to turn left to avoid obstacle", "actions": ["LEFT", "LEFT", "FORWARD"]}
+        - {"thought": "Approaching the target on the right", "actions": ["FORWARD", "RIGHT", "FORWARD"]}
+        - {"thought": "Goal achieved - reached destination", "actions": []}
         
+        Remember: Only respond with valid JSON, nothing else.
         """;
 
-    public AiResource(RpiService rpiService, OllamaChatModel ollamaChatModel) {
+    public record LlmResponse(String thought, List<String> actions) {
+    }
+
+    public AiResource(RpiService rpiService, OllamaChatModel ollamaChatModel, ObjectMapper objectMapper) {
         this.rpiService = rpiService;
         this.ollamaClient = ChatClient.create(ollamaChatModel)
             .mutate()
             .defaultSystem(SYSTEM_PROMPT)
             .build();
+        this.objectMapper = objectMapper;
     }
 
     public record ChatRequest(String goal) {
@@ -68,22 +82,23 @@ public class AiResource {
     public record AgentStep(
         int iteration,
         String observation,
-        String action,
+        String thought,
+        List<String> actions,
         boolean completed) {
-
     }
 
     @PostMapping(path = "/agent", produces = "text/event-stream")
-    public Flux<AgentStep> agent(@RequestBody AiResource.ChatRequest request) {
+    public Flux<String> agent(@RequestBody AiResource.ChatRequest request) {
         log.info("Starting agent with goal: {}", request.goal());
 
-        List<Message> conversationHistory = new ArrayList<>();
+        var conversationHistory = new ArrayList<Message>();
 
-        return Flux.range(0, 2)
+        return Flux.range(0, MAX_ITERATIONS)
             .concatMap(iteration ->
                 executeAgentStep(request.goal(), conversationHistory, iteration)
             )
             .takeUntil(AgentStep::completed)
+            .map(AgentStep::thought)
             .doOnComplete(() -> log.info("Agent completed goal"))
             .doOnError(e -> log.error("Agent error", e));
     }
@@ -92,8 +107,8 @@ public class AiResource {
         return captureAndAnalyze(goal, history, iteration)
             .delayElement(Duration.ofMillis(MOVE_DELAY_MS))
             .flatMap(step -> {
-                if (!step.completed() && !step.action().equals("STOP")) {
-                    return executeMovements(step.action())
+                if (!step.completed() && !step.actions().isEmpty()) {
+                    return executeMovements(step.actions())
                         .thenReturn(step);
                 }
                 return Mono.just(step);
@@ -134,26 +149,9 @@ public class AiResource {
                     .content()
                     .collectList()
                     .map(list -> String.join("", list))
-                    .map(response -> {
-                        String action = response.trim().toUpperCase();
-                        log.info("Iteration {}: LLM response: {}", iteration, action);
-
-                        // Add assistant response to history
-                        history.add(new AssistantMessage(action));
-
-                        // Keep history manageable (last 6 messages = 3 exchanges)
-                        if (history.size() > 6) {
-                            history.subList(0, history.size() - 6).clear();
-                        }
-
-                        boolean isCompleted = action.contains("STOP");
-
-                        return new AgentStep(
-                            iteration,
-                            "Image captured and analyzed",
-                            action,
-                            isCompleted
-                        );
+                    .flatMap(response -> {
+                        log.info("Iteration {}: LLM raw response: {}", iteration, response);
+                        return parseJsonResponse(response, iteration, history);
                     });
             })
             .onErrorResume(e -> {
@@ -161,24 +159,73 @@ public class AiResource {
                 return Mono.just(new AgentStep(
                     iteration,
                     "Error: " + e.getMessage(),
-                    "STOP",
+                    "Error occurred",
+                    Collections.emptyList(),
                     true
                 ));
             });
     }
 
-    private Mono<Void> executeMovements(String actions) {
-        List<String> moves = Arrays.stream(actions.split(","))
+    private Mono<AgentStep> parseJsonResponse(String response, int iteration, List<Message> history) {
+        return Mono.fromCallable(() -> {
+            try {
+                // Try to extract JSON if there's extra text
+                String jsonStr = response.trim();
+                int jsonStart = jsonStr.indexOf("{");
+                int jsonEnd = jsonStr.lastIndexOf("}");
+
+                if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                    jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+                }
+
+                LlmResponse llmResponse = objectMapper.readValue(jsonStr, LlmResponse.class);
+
+                log.info("Iteration {}: Thought: {}, Actions: {}",
+                    iteration, llmResponse.thought(), llmResponse.actions());
+
+                // Add assistant response to history
+                history.add(new AssistantMessage(jsonStr));
+
+                // Keep history manageable (last 6 messages = 3 exchanges)
+                if (history.size() > 6) {
+                    history.subList(0, history.size() - 6).clear();
+                }
+
+                boolean isCompleted = llmResponse.actions().isEmpty();
+
+                return new AgentStep(
+                    iteration,
+                    "Image captured and analyzed",
+                    llmResponse.thought(),
+                    llmResponse.actions(),
+                    isCompleted
+                );
+            } catch (Exception e) {
+                log.error("Failed to parse JSON response: {}", response, e);
+                // Fallback to old format if JSON parsing fails
+                return new AgentStep(
+                    iteration,
+                    "Failed to parse JSON response",
+                    "Parse error",
+                    Collections.emptyList(),
+                    true
+                );
+            }
+        });
+    }
+
+    private Mono<Void> executeMovements(List<String> actions) {
+        List<String> validMoves = actions.stream()
             .map(String::trim)
-            .filter(move -> !move.equals("STOP"))
+            .map(String::toUpperCase)
             .filter(RpiService.MOVE_DIRECTION::isMoveCommand)
             .toList();
 
-        if (moves.isEmpty()) {
+        if (validMoves.isEmpty()) {
             return Mono.empty();
         }
 
-        return Flux.fromIterable(moves)
+        return Flux.fromIterable(validMoves)
             .concatMap(move ->
                 Mono.fromRunnable(() -> {
                         log.info("Executing move: {}", move);
