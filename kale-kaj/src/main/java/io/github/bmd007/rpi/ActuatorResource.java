@@ -5,6 +5,8 @@ import io.github.bmd007.rpi.service.RpiCamStill;
 import io.github.bmd007.rpi.service.RpiCamVid;
 import io.github.bmd007.rpi.service.ServoService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,8 +40,8 @@ public class ActuatorResource {
 
     //cant use still image camera when video camera is running
     private static final RpiCamStill IMAGE_CAMERA = new RpiCamStill()
-        .setDimensions(600, 800)
-        .setQuality(100)
+        .setDimensions(640, 480) // Lower resolution = faster processing
+        .setQuality(85) // 85 is fine, 100 is overkill
         .setTimeout(5)
         .setVerbose(false);
 
@@ -51,7 +53,7 @@ public class ActuatorResource {
         this.servoService = servoService;
     }
 
-    //    @EventListener(ApplicationReadyEvent.class)
+//    @EventListener(ApplicationReadyEvent.class)
     public void start() {
         if (!RpiCamVid.isAvailable()) {
             System.err.println("rpicam-vid not available or unsupported hardware version.");

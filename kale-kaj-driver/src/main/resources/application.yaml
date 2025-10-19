@@ -14,6 +14,10 @@ spring:
         gemini:
           project-id: ai-circle-2025-cluster-34390
           location: europe-north1
+          chat:
+            options:
+              model: gemini-1.5-flash
+              temperature: 0.1
   main:
     banner-mode: off
 

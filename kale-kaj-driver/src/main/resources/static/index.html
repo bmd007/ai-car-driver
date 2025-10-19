@@ -76,7 +76,7 @@
         const response = await fetch('/agent', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({input})
+            body: JSON.stringify({goal: input})
         });
 
         const contentType = response.headers.get('Content-Type');
