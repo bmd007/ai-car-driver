@@ -34,9 +34,11 @@ public class KaleKajDriverAgent {
                     .verbosity(verbosity -> verbosity
                         .showPrompts(true)
                         .showLlmResponses(true)
-                        .debug(true)))
-                .build(WriteAndReviewAgent.ReviewedStory.class);
-        var  input = new UserInput("a thrilling adventure in space");
+                        .debug(true)
+                    )
+                )
+                .build(WhatDoYouSee.ThoughtsAndMove.class);
+        var input = new UserInput("Drive the robot to explore the room and describe what you see.");
         var story = invocation.invoke(input);
     }
 }
