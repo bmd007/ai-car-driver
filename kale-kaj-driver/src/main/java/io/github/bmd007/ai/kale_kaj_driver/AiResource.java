@@ -12,6 +12,7 @@ import org.springframework.ai.content.Media;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatModel;
 import org.springframework.http.MediaType;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,7 +55,7 @@ public class AiResource {
         
         Remember: Only and only and only respond with valid JSON, nothing else.
         The only acceptable response format is JSON, as exemplified below.
-        Don't forget that your json reponse should start with { and end with }.
+        Don't forget that your json response should start with { and end with }.
         
         Example valid responses:
         - {"thought": "I see an open path ahead", "actions": ["FORWARD"]}
@@ -66,12 +67,10 @@ public class AiResource {
         .onBackpressureBuffer(1, false);
 
 
-    private static final int MAX_ITERATIONS = 10;
-    private static final long MOVE_DELAY_MS = 100;
+    private static final int MAX_ITERATIONS = 50;
     private final RpiService rpiService;
     private final ChatClient ollamaClient;
     private final ObjectMapper objectMapper;
-    private final VertexAiGeminiChatModel vertexAiGeminiChatModel;
 
     public AiResource(RpiService rpiService,
                       OllamaChatModel ollamaChatModel,
@@ -84,7 +83,6 @@ public class AiResource {
             .defaultSystem(SYSTEM_PROMPT)
             .build();
         this.objectMapper = objectMapper;
-        this.vertexAiGeminiChatModel = vertexAiGeminiChatModel;
     }
 
     public record ChatRequest(String goal) {
@@ -130,11 +128,9 @@ public class AiResource {
 
     private Mono<AgentStep> executeAgentStep(String goal, List<Message> history, int iteration) {
         return captureAndAnalyze(goal, history, iteration)
-            .delayElement(Duration.ofMillis(MOVE_DELAY_MS))
             .flatMap(step -> {
                 if (!step.completed() && !step.actions().isEmpty()) {
-                    return executeMovements(step.actions())
-                        .thenReturn(step);
+                    return executeMovements(step.actions()).thenReturn(step);
                 }
                 return Mono.just(step);
             });
@@ -147,11 +143,9 @@ public class AiResource {
                 // Emit raw image bytes to all subscribers
                 imageSink.tryEmitNext(imageBytes);
 
-                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
                 Media media = Media.builder()
-                    .mimeType(MediaType.IMAGE_JPEG)
-                    .data(base64Image)
+                    .mimeType(MimeTypeUtils.IMAGE_JPEG)
+                    .data(imageBytes)
                     .build();
 
                 String userContent = iteration == 0
@@ -179,10 +173,7 @@ public class AiResource {
                     .content()
                     .collectList()
                     .map(list -> String.join("", list))
-                    .flatMap(response -> {
-                        log.info("Iteration {}: LLM raw response: {}", iteration, response);
-                        return parseJsonResponse(response, iteration, history);
-                    });
+                    .flatMap(response -> parseJsonResponse(response, iteration, history));
             });
     }
 
@@ -235,10 +226,11 @@ public class AiResource {
     }
 
     private Mono<Void> executeMovements(List<String> actions) {
-        List<String> validMoves = actions.stream()
+        var validMoves = actions.stream()
             .map(String::trim)
             .map(String::toUpperCase)
             .filter(RpiService.MOVE_DIRECTION::isMoveCommand)
+            .map(RpiService.MOVE_DIRECTION::valueOf)
             .toList();
 
         if (validMoves.isEmpty()) {
@@ -246,14 +238,9 @@ public class AiResource {
         }
 
         return Flux.fromIterable(validMoves)
-            .concatMap(move ->
-                Mono.fromRunnable(() -> {
-                        log.info("Executing move: {}", move);
-                        rpiService.moveTheRobot(RpiService.MOVE_DIRECTION.valueOf(move));
-                    })
-                    .delayElement(Duration.ofMillis(500)) // Delay between individual moves
-                    .then()
-            )
+            .doOnNext(move -> log.info("Executing move: {}", move))
+            .delayUntil(rpiService::moveTheRobot)
+            .delayElements(Duration.ofMillis(1000))
             .then();
     }
 }

@@ -29,12 +29,11 @@ public class RpiService {
             .build();
     }
 
-    public void moveTheRobot(MOVE_DIRECTION direction) {
-        client.post()
+    public Mono<Void> moveTheRobot(MOVE_DIRECTION direction) {
+        return client.post()
             .uri("/move?command=" + direction.name())
             .retrieve()
-            .bodyToMono(Void.class)
-            .subscribe();
+            .bodyToMono(Void.class);
     }
 
     public Flux<String> videoFeed() {
