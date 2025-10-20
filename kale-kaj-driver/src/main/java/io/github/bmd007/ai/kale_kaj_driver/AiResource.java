@@ -173,9 +173,10 @@ public class AiResource {
                         .build())
                     .build();
 
-                return Mono.fromCallable(() -> ollamaClient.prompt(prompt)
-                        .call()
-                        .content())
+                return ollamaClient.prompt(prompt)
+                    .stream()
+                    .content()
+                    .collectList()
                     .map(list -> String.join("", list))
                     .flatMap(response -> {
                         log.info("Iteration {}: LLM raw response: {}", iteration, response);
