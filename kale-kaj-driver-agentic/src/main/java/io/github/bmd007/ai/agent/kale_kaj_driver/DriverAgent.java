@@ -51,7 +51,7 @@ public class DriverAgent {
             .withToolObject(rpiService)
             .createObject("""
                 Move the car based on the command: %s.
-                Explain how you compare the observation %s with the goal %s . 
+                Explain how you compare the observation %s with the goal %s .
                 """.formatted(observationResult.moveDirection,
                 observationResult.observation(),
                 userInput.getContent()

@@ -7,8 +7,8 @@ spring:
         pull-model-strategy: always
       chat:
         options:
-          model: llama3.1:8b
-#          model: deepseek-r1:8b
+#          model: llama3.1:8b
+          model: llava
     vertex:
       ai:
         gemini:

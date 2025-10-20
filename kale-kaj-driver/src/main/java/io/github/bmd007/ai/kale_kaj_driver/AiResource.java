@@ -54,6 +54,7 @@ public class AiResource {
         
         Remember: Only and only and only respond with valid JSON, nothing else.
         The only acceptable response format is JSON, as exemplified below.
+        Don't forget that your json reponse should start with { and end with }.
         
         Example valid responses:
         - {"thought": "I see an open path ahead", "actions": ["FORWARD"]}
@@ -169,7 +170,7 @@ public class AiResource {
                 Prompt prompt = Prompt.builder()
                     .messages(history)
                     .chatOptions(ChatOptions.builder()
-                        .temperature(0.1)
+                        .temperature(0.0)
                         .build())
                     .build();
 
@@ -181,17 +182,17 @@ public class AiResource {
                     .flatMap(response -> {
                         log.info("Iteration {}: LLM raw response: {}", iteration, response);
                         return parseJsonResponse(response, iteration, history);
+                    })
+                    .onErrorResume(e -> {
+                        log.error("Error in iteration {}: {}", iteration, e.getMessage());
+                        return Mono.just(new AgentStep(
+                            iteration,
+                            "Error: " + e.getMessage(),
+                            "Error occurred",
+                            Collections.emptyList(),
+                            true
+                        ));
                     });
-            })
-            .onErrorResume(e -> {
-                log.error("Error in iteration {}: {}", iteration, e.getMessage());
-                return Mono.just(new AgentStep(
-                    iteration,
-                    "Error: " + e.getMessage(),
-                    "Error occurred",
-                    Collections.emptyList(),
-                    true
-                ));
             });
     }
 
