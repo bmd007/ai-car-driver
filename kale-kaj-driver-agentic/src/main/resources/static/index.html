@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kale Kaj Agentic Brain</title>
+    <style>
+        #main-container {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 32px;
+            margin: 30px;
+        }
+
+        @media (max-width: 900px) {
+            #main-container {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            #chat-panel {
+                margin-top: 24px;
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="main-container">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 32px;">
+        <div id="video-frame3" style="border: 8px solid green; padding: 4px; background: #eaffea;">
+            <button id="video-refresh-btn"
+                    style="margin-top: 12px; background: #4e9a06; color: white; border: none; border-radius: 8px; padding: 8px 20px; font-size: 1em; font-weight: bold; cursor: pointer;">
+                🔄 Refresh Video
+            </button>
+            <h2 style="color: #4e9a06; margin-bottom: 16px; font-family: 'Segoe UI', sans-serif;">🤖 Camera feed</h2>
+            <img id="video-stream3" src="http://192.168.1.165:8080/v3/video-stream"
+                 style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
+        </div>
+        <div id="capture-panel"
+             style="border: 8px solid #1e90ff; padding: 4px; background: #eaf4ff; display: flex; flex-direction: column; align-items: center; border-radius: 16px; box-shadow: 0 4px 24px rgba(30,144,255,0.12);">
+            <img id="captured-image" src="" alt="Captured Image"
+                 style="max-width: 600px; max-height: 600px; display: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(30,144,255,0.10); margin-bottom: 12px;">
+            <div id="capture-loading" style="display: none; color: #1e90ff; font-weight: bold; margin-bottom: 8px;">
+                Capturing...
+            </div>
+            <button id="capture-btn"
+                    style="background: linear-gradient(90deg,#1e90ff 60%,#8ecfff 100%); color: white; border: none; border-radius: 8px; padding: 0 24px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(30,144,255,0.12); transition: background 0.2s;">
+                📸 Capture Image
+            </button>
+        </div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 32px;">
+        <div id="chat-panel"
+             style="border: 8px solid #4e9a06; background: #f6fff6; border-radius: 16px; box-shadow: 0 4px 24px rgba(78,154,6,0.15); max-width: 600px; padding: 24px;">
+            <h2 style="color: #4e9a06; margin-bottom: 16px; font-family: 'Segoe UI', sans-serif;">🤖 AI Chat Panel</h2>
+            <div id="chat-output"
+                 style="height: 320px; overflow-y: auto; background: #eaffea; border-radius: 8px; padding: 16px; font-size: 1.1em; color: #222; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(78,154,6,0.07);"></div>
+            <div style="display: flex; gap: 12px;">
+                <input id="chat-input" type="text" placeholder="Type your message..."
+                       style="flex: 1; padding: 12px; border-radius: 8px; border: 2px solid #4e9a06; font-size: 1em; outline: none;">
+                <button id="chat-send"
+                        style="background: linear-gradient(90deg,#4e9a06 60%,#8ae234 100%); color: white; border: none; border-radius: 8px; padding: 0 24px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(78,154,6,0.12); transition: background 0.2s;">
+                    Send
+                </button>
+            </div>
+        </div>
+
+        <div id="llm-image-panel"
+             style="border: 8px solid #9b59b6; padding: 4px; background: #f3e8ff; display: flex; flex-direction: column; align-items: center; border-radius: 16px; box-shadow: 0 4px 24px rgba(155,89,182,0.12);">
+            <h3 style="color: #9b59b6; margin: 8px 0; font-family: 'Segoe UI', sans-serif;">🧠 LLM Vision</h3>
+            <img id="llm-image" src="" alt="LLM Image"
+                 style="max-width: 600px; max-height: 600px; display: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(155,89,182,0.10);">
+            <div id="llm-image-placeholder" style="color: #9b59b6; padding: 20px; text-align: center;">
+                Waiting for AI processing...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatOutput = document.getElementById('chat-output');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+    const llmImage = document.getElementById('llm-image');
+    const llmImagePlaceholder = document.getElementById('llm-image-placeholder');
+
+    let llmImageAbortController = null;
+
+    function appendToOutput(text) {
+        chatOutput.innerHTML += text.replace(/\n/g, '<br> <br>');
+        chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    async function startLlmImageStream() {
+        // Close existing connection if any
+        if (llmImageAbortController) {
+            llmImageAbortController.abort();
+        }
+
+        llmImagePlaceholder.style.display = 'block';
+        llmImage.style.display = 'none';
+
+        llmImageAbortController = new AbortController();
+
+        try {
+            const response = await fetch('/llm-image-stream', {
+                signal: llmImageAbortController.signal
+            });
+
+            if (!response.body) {
+                llmImagePlaceholder.textContent = '⚠️ No stream available';
+                return;
+            }
+
+            const reader = response.body.getReader();
+
+            while (true) {
+                const {value, done} = await reader.read();
+                if (done) break;
+
+                // value is Uint8Array of image bytes
+                const blob = new Blob([value], {type: 'image/jpeg'});
+                llmImage.src = URL.createObjectURL(blob);
+                llmImage.style.display = 'block';
+                llmImagePlaceholder.style.display = 'none';
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('LLM image stream error:', error);
+                llmImagePlaceholder.textContent = '⚠️ Stream disconnected';
+            }
+        }
+    }
+
+    function stopLlmImageStream() {
+        if (llmImageAbortController) {
+            llmImageAbortController.abort();
+            llmImageAbortController = null;
+        }
+    }
+
+    async function startChat(input) {
+        chatOutput.textContent = '';
+
+        // Start the image stream when chat begins
+        startLlmImageStream();
+
+        const response = await fetch('/agent', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({goal: input})
+        });
+
+        const contentType = response.headers.get('Content-Type');
+        if (contentType && contentType.includes('application/json')) {
+            // Single JSON response
+            const data = await response.json();
+            appendToOutput(data.response || '⚠️ No response.');
+        } else if (contentType && contentType.includes('text/event-stream')) {
+            // SSE stream
+            if (!response.body) {
+                appendToOutput('⚠️ No response stream.');
+                return;
+            }
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            while (true) {
+                const {value, done} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+                let lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        appendToOutput('--> ' + line.slice(5) + ' \n');
+                    }
+                }
+            }
+        } else {
+            appendToOutput('⚠️ Unknown response type.');
+        }
+
+        // Stop the image stream when chat completes
+        stopLlmImageStream();
+    }
+
+    chatSend.onclick = async function () {
+        const input = chatInput.value.trim();
+        if (!input) return;
+        chatSend.disabled = true;
+        chatInput.disabled = true;
+        await startChat(input);
+        chatSend.disabled = false;
+        chatInput.disabled = false;
+        chatInput.value = '';
+    };
+
+    chatInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') chatSend.click();
+    });
+
+    document.getElementById('video-stream3')
+        .addEventListener('error', function () {
+            setTimeout(function () {
+                const img = document.getElementById('video-stream3');
+                img.src = 'v3/video-stream?ts=' + Date.now();
+            }, 1000);
+        });
+
+    const captureBtn = document.getElementById('capture-btn');
+    const capturedImage = document.getElementById('captured-image');
+    const captureLoading = document.getElementById('capture-loading');
+
+    captureBtn.onclick = async function () {
+        captureBtn.disabled = true;
+        captureLoading.style.display = 'block';
+        capturedImage.style.display = 'none';
+        try {
+            const response = await fetch('http://192.168.1.165:8080/v3/capture-image');
+            if (!response.ok) throw new Error('Failed to capture image');
+            const blob = await response.blob();
+            capturedImage.src = URL.createObjectURL(blob);
+            capturedImage.style.display = 'block';
+        } catch (e) {
+            captureLoading.textContent = '⚠️ Error capturing image';
+        } finally {
+            captureBtn.disabled = false;
+            captureLoading.style.display = 'none';
+            captureLoading.textContent = 'Capturing...';
+        }
+    };
+
+    document.getElementById('video-refresh-btn').onclick = function () {
+        const img = document.getElementById('video-stream3');
+        // Add a timestamp to force reload
+        img.src = 'http://192.168.1.165:8080/v3/video-stream?ts=' + Date.now();
+    };
+</script>
+
+</body>
+</html>

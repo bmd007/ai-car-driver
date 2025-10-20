@@ -1,0 +1,15 @@
+spring:
+  application.name: kale-kaj-driver
+  main:
+    banner-mode: off
+  http:
+    client:
+      factory: jdk
+
+embabel:
+  models:
+    default-llm: llama3.1:8b
+    llms:
+      reviewer: llama3.1:8b
+      user-assistant: llama3.2:1b
+#    default-llm: llava:7b

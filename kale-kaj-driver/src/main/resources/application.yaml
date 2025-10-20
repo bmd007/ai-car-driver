@@ -13,12 +13,12 @@ spring:
       ai:
         gemini:
           project-id: ai-circle-2025-cluster-34390
-          location: europe-north1
-#          location: us-central1
-#          chat:
-#            options:
+#          location: europe-north1
+          location: europe-west4
+          chat:
+            options:
 #              model: meta/llama-4-maverick-17b-128e-instruct-mass
-#              model: liuhaotian/pytorch-llava@llava-1.5-7b-hf
+              model: liuhaotian/pytorch-llava@llava-1.5-7b-hf
 #              temperature: 0.0
           transport: rest
   main:
