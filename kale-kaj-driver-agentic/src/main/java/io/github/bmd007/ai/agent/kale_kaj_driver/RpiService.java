@@ -29,7 +29,7 @@ public class RpiService {
             .build();
     }
 
-    @Tool(description = "Move the robot in the specified direction")
+    @Tool(description = "Thought the robot in the specified direction")
     public void moveTheRobot(MOVE_DIRECTION direction) {
         client.post()
             .uri("/move?command=" + direction.name())
