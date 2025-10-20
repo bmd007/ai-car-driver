@@ -182,16 +182,6 @@ public class AiResource {
                     .flatMap(response -> {
                         log.info("Iteration {}: LLM raw response: {}", iteration, response);
                         return parseJsonResponse(response, iteration, history);
-                    })
-                    .onErrorResume(e -> {
-                        log.error("Error in iteration {}: {}", iteration, e.getMessage());
-                        return Mono.just(new AgentStep(
-                            iteration,
-                            "Error: " + e.getMessage(),
-                            "Error occurred",
-                            Collections.emptyList(),
-                            true
-                        ));
                     });
             });
     }
