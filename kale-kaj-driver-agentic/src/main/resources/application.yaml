@@ -8,8 +8,6 @@ spring:
 
 embabel:
   models:
-    default-llm: llama3.1:8b
+    default-llm: gpt-5
     llms:
-      reviewer: llama3.1:8b
-      user-assistant: llama3.1:8b
-#    default-llm: llava:7b
+      reviewer: gpt-5

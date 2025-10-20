@@ -30,7 +30,7 @@ public class DriverAgent {
                 
                 Your goal: %s
                 
-                Get an image from the car's camera. (Use the tool to get the image.)
+                Get an image from the car's camera.
                 Explain what you see looking at each image.
                 Based on what you see, decide the best move command to achieve the goal.
                 """.formatted(userInput.getContent()), ObservationResult.class);

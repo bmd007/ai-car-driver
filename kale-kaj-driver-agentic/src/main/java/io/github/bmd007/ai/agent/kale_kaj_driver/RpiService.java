@@ -38,15 +38,14 @@ public class RpiService {
             .subscribe();
     }
 
-    @Tool(description = "Get a picture from the robot front first person camera, as a base64 string representing byte arrays representing JPEG image")
-    public String image() {
+    @Tool(description = "Get a picture from the robot front first person camera, a byte arrays representing JPEG image")
+    public byte[] image() {
         return client.get()
             .uri("/v3/capture-image")
             .retrieve()
             .bodyToMono(byte[].class)
             .retry(2)
             .onErrorReturn(new byte[]{})
-            .map(Base64.getEncoder()::encodeToString)
             .block();
     }
 

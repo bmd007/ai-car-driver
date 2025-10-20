@@ -20,3 +20,20 @@ Content-Type: application/json
 }
 
 ###
+POST https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+Authorization: Bearer {{gemeni-api-key}}
+Content-Type: application/json
+
+{
+  "model": "gemini-2.0-flash",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Explain to me how AI works"
+    }
+  ]
+}
+
+###
+
+

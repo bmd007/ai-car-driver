@@ -136,7 +136,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+kale-kaj-driver-agentic/.env
 .envrc
 .venv
 env/
@@ -211,7 +211,7 @@ __marimo__/
 /build/libs/
 /fat-jar/
 /gcp-firebase/oidc_client_secret.json
-/.env
+/kale-kaj-driver-agentic/.env
 
 HELP.md
 .gradle
@@ -251,3 +251,5 @@ out/
 
 ### VS Code ###
 .vscode/
+/http-client/http-client.env.json
+http-client.env.json
