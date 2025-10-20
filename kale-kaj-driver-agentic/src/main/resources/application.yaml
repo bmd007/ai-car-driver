@@ -11,5 +11,5 @@ embabel:
     default-llm: llama3.1:8b
     llms:
       reviewer: llama3.1:8b
-      user-assistant: llama3.2:1b
+      user-assistant: llama3.1:8b
 #    default-llm: llava:7b

@@ -40,8 +40,8 @@ public class KaleKajDriverAgenticApp {
                     )
                     .build()
                 )
-                .build(WriteAndReviewAgent.ReviewedStory.class);
-        var input = new UserInput("do you see?");
+                .build(DriverAgent.CarMoved.class);
+        var input = new UserInput("keep moving the car until you end up in kitchen?");
         invocation.invoke(input);
     }
 }

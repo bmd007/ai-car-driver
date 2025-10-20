@@ -38,18 +38,23 @@ public class DriverAgent {
         return res;
     }
 
-    public record CarMoved(boolean success) {
+    public record CarMoved(String thought) {
     }
 
     @Action
-    @AchievesGoal(description = "Moving the car")
-    public CarMoved executeMoveCommand(ObservationResult observationResult, OperationContext context) {
+    @AchievesGoal(description = "Move the car and say what you think")
+    public CarMoved executeMoveCommand(ObservationResult observationResult,
+                                       UserInput userInput,
+                                       OperationContext context) {
         return context.ai()
             .withAutoLlm()
             .withToolObject(rpiService)
             .createObject("""
                 Move the car based on the command: %s.
-                Say if you managed to move the car?
-                """.formatted(observationResult), CarMoved.class);
+                Explain how you compare the observation %s with the goal %s . 
+                """.formatted(observationResult.moveDirection,
+                observationResult.observation(),
+                userInput.getContent()
+            ), CarMoved.class);
     }
 }
