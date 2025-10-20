@@ -32,7 +32,7 @@ public class WriteAndReviewAgent {
     public WriteAndReviewAgent.Story writeStory(UserInput userInput, OperationContext context) {
         return context.ai()
             .withAutoLlm()
-            .withToolGroups(Set.of(CoreToolGroups.WEB, CoreToolGroups.MATH))
+            .withToolGroups(Set.of(CoreToolGroups.WEB))
             .withPromptElements(persona)
             .createObject("""
                 You are a creative writer who aims to delight and surprise.
@@ -48,7 +48,7 @@ public class WriteAndReviewAgent {
     public ReviewedStory reviewStory(WriteAndReviewAgent.Story story, OperationContext context) {
         return context.ai()
             .withLlmByRole("reviewer")
-            .withToolGroups(Set.of(CoreToolGroups.WEB, CoreToolGroups.MATH))
+            .withToolGroups(Set.of(CoreToolGroups.MATH))
             .withPromptElements(agent)
             .createObject("""
                         You are a meticulous editor.
