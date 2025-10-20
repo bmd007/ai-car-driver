@@ -10,6 +10,7 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatModel;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,15 +30,6 @@ import java.util.List;
 @Slf4j
 @RestController
 public class AiResource {
-
-    private static final int MAX_ITERATIONS = 10;
-    private static final long MOVE_DELAY_MS = 100;
-    private final RpiService rpiService;
-    private final ChatClient ollamaClient;
-    private final ObjectMapper objectMapper;
-
-    private final Sinks.Many<byte[]> imageSink = Sinks.many().multicast()
-        .onBackpressureBuffer(1, false);
 
     private static final String SYSTEM_PROMPT = """
         You are controlling a robotic car with a front-facing camera.
@@ -60,25 +52,38 @@ public class AiResource {
         - Be decisive - analyze the image and commit to a direction
         - Your response must be valid JSON only, no additional text
         
+        Remember: Only and only and only respond with valid JSON, nothing else.
+        The only acceptable response format is JSON, as exemplified below.
+        
         Example valid responses:
         - {"thought": "I see an open path ahead", "actions": ["FORWARD"]}
         - {"thought": "Need to turn left to avoid obstacle", "actions": ["LEFT", "LEFT", "FORWARD"]}
         - {"thought": "Approaching the target on the right", "actions": ["FORWARD", "RIGHT", "FORWARD"]}
         - {"thought": "Goal achieved - reached destination", "actions": []}
-        
-        Remember: Only and only and only respond with valid JSON, nothing else.
         """;
+    private final Sinks.Many<byte[]> imageSink = Sinks.many().multicast()
+        .onBackpressureBuffer(1, false);
 
-    public record LlmResponse(String thought, List<String> actions) {
-    }
 
-    public AiResource(RpiService rpiService, OllamaChatModel ollamaChatModel, ObjectMapper objectMapper) {
+    private static final int MAX_ITERATIONS = 10;
+    private static final long MOVE_DELAY_MS = 100;
+    private final RpiService rpiService;
+    private final ChatClient ollamaClient;
+    private final ObjectMapper objectMapper;
+    private final VertexAiGeminiChatModel vertexAiGeminiChatModel;
+
+    public AiResource(RpiService rpiService,
+                      OllamaChatModel ollamaChatModel,
+                      ObjectMapper objectMapper,
+                      VertexAiGeminiChatModel vertexAiGeminiChatModel
+    ) {
         this.rpiService = rpiService;
-        this.ollamaClient = ChatClient.create(ollamaChatModel)
+        this.ollamaClient = ChatClient.create(vertexAiGeminiChatModel)
             .mutate()
             .defaultSystem(SYSTEM_PROMPT)
             .build();
         this.objectMapper = objectMapper;
+        this.vertexAiGeminiChatModel = vertexAiGeminiChatModel;
     }
 
     public record ChatRequest(String goal) {
@@ -91,9 +96,12 @@ public class AiResource {
         List<String> actions,
         boolean completed) {
 
-        public String pritable(){
+        public String printable() {
             return actions + " | " + thought;
         }
+    }
+
+    public record LlmResponse(String thought, List<String> actions) {
     }
 
     @GetMapping(path = "/llm-image-stream", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
@@ -114,7 +122,7 @@ public class AiResource {
                 executeAgentStep(request.goal(), conversationHistory, iteration)
             )
             .takeUntil(AgentStep::completed)
-            .map(AgentStep::pritable)
+            .map(AgentStep::printable)
             .doOnComplete(() -> log.info("Agent completed goal"))
             .doOnError(e -> log.error("Agent error", e));
     }
@@ -151,7 +159,7 @@ public class AiResource {
                     What do you see? What should be the next move?""".formatted(goal)
                     : "After the previous move, what do you see now? What's the next move?";
 
-                UserMessage userMsg = new UserMessage(userContent)
+                var userMsg = new UserMessage(userContent)
                     .mutate()
                     .media(media)
                     .build();
@@ -161,14 +169,13 @@ public class AiResource {
                 Prompt prompt = Prompt.builder()
                     .messages(history)
                     .chatOptions(ChatOptions.builder()
-                        .temperature(0.1) // Low temperature for consistent decisions
+                        .temperature(0.1)
                         .build())
                     .build();
 
-                return ollamaClient.prompt(prompt)
-                    .stream()
-                    .content()
-                    .collectList()
+                return Mono.fromCallable(() -> ollamaClient.prompt(prompt)
+                        .call()
+                        .content())
                     .map(list -> String.join("", list))
                     .flatMap(response -> {
                         log.info("Iteration {}: LLM raw response: {}", iteration, response);

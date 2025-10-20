@@ -19,7 +19,7 @@ public class RpiService {
 
     public RpiService(WebClient.Builder webClientBuilder) {
         this.client = webClientBuilder
-            .baseUrl("https://kalekaj-bmd.eu1.pitunnel.net")
+            .baseUrl("http://192.168.1.165:8080")
             .exchangeStrategies(ExchangeStrategies.builder()
                 .codecs(codecs -> codecs.defaultCodecs()
                     .maxInMemorySize(1024 * 1024 * 100) // 10 MB

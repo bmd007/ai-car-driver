@@ -34,7 +34,7 @@
                 🔄 Refresh Video
             </button>
             <h2 style="color: #4e9a06; margin-bottom: 16px; font-family: 'Segoe UI', sans-serif;">🤖 Camera feed</h2>
-            <img id="video-stream3" src="https://kalekaj-bmd.eu1.pitunnel.net/v3/video-stream"
+            <img id="video-stream3" src="http://192.168.1.165:8080/v3/video-stream"
                  style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
         </div>
         <div id="capture-panel"
@@ -218,7 +218,7 @@
         captureLoading.style.display = 'block';
         capturedImage.style.display = 'none';
         try {
-            const response = await fetch('https://kalekaj-bmd.eu1.pitunnel.net/v3/capture-image');
+            const response = await fetch('http://192.168.1.165:8080/v3/capture-image');
             if (!response.ok) throw new Error('Failed to capture image');
             const blob = await response.blob();
             capturedImage.src = URL.createObjectURL(blob);
@@ -235,7 +235,7 @@
     document.getElementById('video-refresh-btn').onclick = function () {
         const img = document.getElementById('video-stream3');
         // Add a timestamp to force reload
-        img.src = 'https://kalekaj-bmd.eu1.pitunnel.net/v3/video-stream?ts=' + Date.now();
+        img.src = 'http://192.168.1.165:8080/v3/video-stream?ts=' + Date.now();
     };
 </script>
 

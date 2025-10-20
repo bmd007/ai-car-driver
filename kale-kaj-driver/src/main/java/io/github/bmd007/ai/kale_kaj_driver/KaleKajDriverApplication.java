@@ -10,7 +10,6 @@ public class KaleKajDriverApplication {
     static void main(String[] args) {
         SpringApplication app = new SpringApplication(KaleKajDriverApplication.class);
         app.setWebApplicationType(WebApplicationType.REACTIVE);
-//        app.setWebApplicationType(WebApplicationType.SERVLET);
         app.run(args);
     }
 }
