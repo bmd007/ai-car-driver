@@ -253,3 +253,4 @@ out/
 .vscode/
 /http-client/http-client.env.json
 http-client.env.json
+/http-client/.env
