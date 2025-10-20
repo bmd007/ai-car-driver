@@ -7,13 +7,15 @@ import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.domain.io.UserInput;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+
 @Agent(description = "Agent that drives a robotic car based on first-person camera images")
 public class WhatDoYouSee {
 
     @Autowired
     RpiService rpiService;
 
-    public record MoveCommand(String thoughts, RpiService.MOVE_DIRECTION direction) {
+    public record MoveCommand(String thoughts, String observation, List<RpiService.MOVE_DIRECTION> directions) {
     }
 
     private static final String SYSTEM_PROMPT = """
@@ -22,7 +24,9 @@ public class WhatDoYouSee {
         Your goal: %s
         
         You will receive images from the car's camera showing the first-person view.
-        Based on what you see, decide the next move(s) to achieve the goal.
+        Explain what you see in detail in the 'observation' field.
+        Think about the situation and write your thoughts in the 'thoughts' field.
+        Then, based on your observations and thoughts, decide the best move(s) to achieve the goal.
         """;
 
     @Action
@@ -33,18 +37,18 @@ public class WhatDoYouSee {
             .createObject(SYSTEM_PROMPT.formatted(userInput.getContent()), MoveCommand.class);
     }
 
-    public record ThoughtsAndMove(RpiService.MOVE_DIRECTION direction, String thoughts) {
+    public record Move(RpiService.MOVE_DIRECTION direction) {
     }
 
     @Action
-    @AchievesGoal(description = "Move the robotic car safely based on camera input and thoughts")
-    public ThoughtsAndMove executeMoveCommand(MoveCommand moveCommand, OperationContext context) {
+    @AchievesGoal(description = "Move the robotic car")
+    public Move executeMoveCommand(MoveCommand moveCommand, OperationContext context) {
         return context.ai()
             .withAutoLlm()
             .withToolObject(rpiService)
             .createObject("""
                 Move the robotic car based on the following command: %s, only if the thoughts indicate it's safe to do so.
                 Respond with your thought about the move.
-                """.formatted(moveCommand), ThoughtsAndMove.class);
+                """.formatted(moveCommand), Move.class);
     }
 }

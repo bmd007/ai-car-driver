@@ -37,8 +37,8 @@ public class KaleKajDriverAgent {
                         .debug(true)
                     )
                 )
-                .build(WhatDoYouSee.ThoughtsAndMove.class);
-        var input = new UserInput("Drive the robot to explore the room and describe what you see.");
+                .build(WhatDoYouSee.Move.class);
+        var input = new UserInput("Keep moving and fetch pictures until you see a human.");
         var story = invocation.invoke(input);
     }
 }
