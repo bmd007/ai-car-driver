@@ -78,7 +78,7 @@ public class AiResource {
                       VertexAiGeminiChatModel vertexAiGeminiChatModel
     ) {
         this.rpiService = rpiService;
-        this.ollamaClient = ChatClient.create(ollamaChatModel)
+        this.ollamaClient = ChatClient.create(vertexAiGeminiChatModel)
             .mutate()
             .defaultSystem(SYSTEM_PROMPT)
             .build();
