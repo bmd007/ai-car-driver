@@ -1,6 +1,7 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
 //REPOS mavenCentral
-//JAVA 25
+//JAVA 17
+//REPOS mavenCentral
 //DEPS org.springframework.boot:spring-boot-starter-web:3.5.7
 //FILES application.yml
 
