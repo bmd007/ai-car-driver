@@ -7,6 +7,8 @@ __pycache__/
 *.so
 ignore-me.jar
 deployment/kale-kaj.jar
+kale-kaj.jar
+*/kale-kaj.jar/*
 # Distribution / packaging
 .Python
 build/
