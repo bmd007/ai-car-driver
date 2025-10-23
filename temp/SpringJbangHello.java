@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 @SpringBootApplication
 @RestController
-public class HelloWorld {
+public class SpringJbangHello {
 
     @Value("${app.name:Default App}")
     private String appName;
