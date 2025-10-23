@@ -1,5 +1,4 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//REPOS artifact-registry-central=artifactregistry://europe-north1-maven.pkg.dev/nordnet-artifacts/maven-central-europe-north1
 //JAVA 17
 //REPOS mavenCentral
 //DEPS org.springframework.boot:spring-boot-starter-web:3.5.7
