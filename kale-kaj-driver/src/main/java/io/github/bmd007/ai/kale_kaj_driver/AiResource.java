@@ -66,7 +66,6 @@ public class AiResource {
     private final Sinks.Many<byte[]> imageSink = Sinks.many().multicast()
         .onBackpressureBuffer(1, false);
 
-
     private static final int MAX_ITERATIONS = 50;
     private final RpiService rpiService;
     private final ChatClient ollamaClient;
@@ -75,8 +74,7 @@ public class AiResource {
     public AiResource(RpiService rpiService,
                       OllamaChatModel ollamaChatModel,
                       ObjectMapper objectMapper,
-                      VertexAiGeminiChatModel vertexAiGeminiChatModel
-    ) {
+                      VertexAiGeminiChatModel vertexAiGeminiChatModel) {
         this.rpiService = rpiService;
         this.ollamaClient = ChatClient.create(vertexAiGeminiChatModel)
             .mutate()
@@ -103,26 +101,19 @@ public class AiResource {
     public record LlmResponse(String thought, List<String> actions) {
     }
 
-    @GetMapping(path = "/llm-image-stream", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    public Flux<byte[]> llmImageStream() {
-        log.info("New subscriber to LLM image stream");
+    @GetMapping(path = "/llm-image-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> llmImageStream() {
         return imageSink.asFlux()
-            .doOnCancel(() -> log.info("LLM image stream subscriber cancelled"));
+            .map(Base64.getEncoder()::encodeToString);
     }
 
     @PostMapping(path = "/agent", produces = "text/event-stream")
     public Flux<String> agent(@RequestBody AiResource.ChatRequest request) {
-        log.info("Starting agent with goal: {}", request.goal());
-
         var conversationHistory = new ArrayList<Message>();
-
         return Flux.range(0, MAX_ITERATIONS)
-            .concatMap(iteration ->
-                executeAgentStep(request.goal(), conversationHistory, iteration)
-            )
+            .concatMap(iteration -> executeAgentStep(request.goal(), conversationHistory, iteration))
             .takeUntil(AgentStep::completed)
             .map(AgentStep::printable)
-            .doOnComplete(() -> log.info("Agent completed goal"))
             .doOnError(e -> log.error("Agent error", e));
     }
 
@@ -130,7 +121,8 @@ public class AiResource {
         return captureAndAnalyze(goal, history, iteration)
             .flatMap(step -> {
                 if (!step.completed() && !step.actions().isEmpty()) {
-                    return executeMovements(step.actions()).thenReturn(step);
+                    return executeMovements(step.actions())
+                        .thenReturn(step);
                 }
                 return Mono.just(step);
             });
@@ -138,21 +130,20 @@ public class AiResource {
 
     private Mono<AgentStep> captureAndAnalyze(String goal, List<Message> history, int iteration) {
         return rpiService.image()
+            .doOnNext(imageSink::tryEmitNext)
             .subscribeOn(Schedulers.boundedElastic())
-            .flatMap(imageBytes -> {
-                // Emit raw image bytes to all subscribers
-                imageSink.tryEmitNext(imageBytes);
-
-                Media media = Media.builder()
+            .map(imageBytes ->
+                Media.builder()
                     .mimeType(MimeTypeUtils.IMAGE_JPEG)
                     .data(imageBytes)
-                    .build();
-
-                String userContent = iteration == 0
+                    .build()
+            )
+            .flatMap(media -> {
+                var userContent = iteration == 0
                     ? """
                     The goal is: %s
                     What do you see? What should be the next move?""".formatted(goal)
-                    : "After the previous move, what do you see now? What's the next move?";
+                    : "After the previous moves, what do you see now? What's the next move?";
 
                 var userMsg = new UserMessage(userContent)
                     .mutate()
@@ -161,7 +152,7 @@ public class AiResource {
 
                 history.add(userMsg);
 
-                Prompt prompt = Prompt.builder()
+                var prompt = Prompt.builder()
                     .messages(history)
                     .chatOptions(ChatOptions.builder()
                         .temperature(0.0)
@@ -180,7 +171,6 @@ public class AiResource {
     private Mono<AgentStep> parseJsonResponse(String response, int iteration, List<Message> history) {
         return Mono.fromCallable(() -> {
             try {
-                // Try to extract JSON if there's extra text
                 String jsonStr = response.trim();
                 int jsonStart = jsonStr.indexOf("{");
                 int jsonEnd = jsonStr.lastIndexOf("}");
@@ -189,12 +179,11 @@ public class AiResource {
                     jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
                 }
 
-                LlmResponse llmResponse = objectMapper.readValue(jsonStr, LlmResponse.class);
+                var llmResponse = objectMapper.readValue(jsonStr, LlmResponse.class);
 
                 log.info("Iteration {}: Thought: {}, Actions: {}",
                     iteration, llmResponse.thought(), llmResponse.actions());
 
-                // Add assistant response to history
                 history.add(new AssistantMessage(jsonStr));
 
                 // Keep history manageable (last 6 messages = 3 exchanges)
@@ -213,7 +202,6 @@ public class AiResource {
                 );
             } catch (Exception e) {
                 log.error("Failed to parse JSON response: {}", response, e);
-                // Fallback to old format if JSON parsing fails
                 return new AgentStep(
                     iteration,
                     "Failed to parse JSON response",
@@ -225,7 +213,7 @@ public class AiResource {
         });
     }
 
-    private Mono<Void> executeMovements(List<String> actions) {
+    private Mono<List<RpiService.MOVE_DIRECTION>> executeMovements(List<String> actions) {
         var validMoves = actions.stream()
             .map(String::trim)
             .map(String::toUpperCase)
@@ -238,9 +226,8 @@ public class AiResource {
         }
 
         return Flux.fromIterable(validMoves)
-            .doOnNext(move -> log.info("Executing move: {}", move))
+            .delayElements(Duration.ofMillis(1500))
             .delayUntil(rpiService::moveTheRobot)
-            .delayElements(Duration.ofMillis(1000))
-            .then();
+            .collectList();
     }
 }
