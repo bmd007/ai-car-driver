@@ -181,7 +181,7 @@ public class AiResource {
 
                 var llmResponse = objectMapper.readValue(jsonStr, LlmResponse.class);
 
-                log.info("Iteration {}: Thought: {}, Actions: {}",
+                log.debug("Iteration {}: Thought: {}, Actions: {}",
                     iteration, llmResponse.thought(), llmResponse.actions());
 
                 history.add(new AssistantMessage(jsonStr));
