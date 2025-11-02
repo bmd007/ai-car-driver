@@ -94,7 +94,7 @@ public class AiResource {
         boolean completed) {
 
         public String printable() {
-            return actions + " | " + thought;
+            return thought + " =====> Actions: " + actions;
         }
     }
 
