@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.6'
+	id 'org.springframework.boot' version '4.0.0'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -43,14 +43,14 @@ repositories {
 }
 
 ext {
-	set('springAiVersion', "1.0.3")
+	set('springAiVersion', "1.1.0")
 }
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 //    implementation 'com.embabel.agent:embabel-agent-starter:0.1.3'
-    implementation 'com.embabel.agent:embabel-agent-starter-openai:0.1.3'
+    implementation 'com.embabel.agent:embabel-agent-starter-openai:0.3.0'
 //    implementation 'com.embabel.agent:embabel-agent-starter-ollama:0.1.3'
     compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
