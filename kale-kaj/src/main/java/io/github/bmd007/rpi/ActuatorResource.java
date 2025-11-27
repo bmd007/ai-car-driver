@@ -31,7 +31,7 @@ public class ActuatorResource {
 
     private static final Sinks.Many<byte[]> SINK = Sinks.many()
         .multicast()
-        .onBackpressureBuffer(4, false);
+        .onBackpressureBuffer(1, false);
 
     private static final AtomicReference<byte[]> LATEST_FRAME = new AtomicReference<>();
 
@@ -40,13 +40,6 @@ public class ActuatorResource {
         .setTimeout(Integer.MAX_VALUE)
         .setEncoding("mjpeg")
         .setFramerate(30)
-        .setVerbose(false);
-
-    //cant use still image camera when video camera is running
-    private static final RpiCamStill IMAGE_CAMERA = new RpiCamStill()
-        .setDimensions(640, 480) // Lower resolution = faster processing
-        .setQuality(85) // 85 is fine, 100 is overkill
-        .setTimeout(5)
         .setVerbose(false);
 
     private final MotorService motorService;
