@@ -1,25 +1,20 @@
 spring:
   application.name: kale-kaj-agent
-  threads:
-    virtual:
-      enabled: true
   ai:
     vertex:
       ai:
         gemini:
           project-id: ai-circle-2025-cluster-34390
           location: europe-north1
-          #          location: us-east5
           chat:
             options:
               model: gemini-2.5-pro
-          transport: rest
-  main:
-    banner-mode: off
-
-  http:
-    client:
-      factory: jdk
+#          transport: rest
+#  main:
+#    banner-mode: off
+#  http:
+#    client:
+#      factory: jdk
 
 embabel:
   models:
