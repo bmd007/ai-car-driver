@@ -8,7 +8,7 @@ spring:
           location: europe-north1
           chat:
             options:
-              model: gemini-3.0-pro
+              model: gemini-2.5-pro
           transport: rest
   main:
     banner-mode: off
@@ -18,4 +18,4 @@ spring:
 
 embabel:
   models:
-    default-llm: gemini-3.0-pro
+    default-llm: gemini-2.5-pro

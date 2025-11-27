@@ -28,7 +28,6 @@ public class ModelConfig {
         this.chatModel = chatModel;
     }
 
-    @Bean
     public Llm gemini30Pro() {
         final var knowledgeCutoffDate = LocalDate.of(2025, 1, 1);
         final var pricePerMillionInputTokens = 1.25;
@@ -44,57 +43,55 @@ public class ModelConfig {
             new PerTokenPricingModel(pricePerMillionInputTokens, pricePerMillionOutputTokens)
         );
     }
-//
-//    @Bean
-//    public Llm gemini25Pro() {
-//        final var knowledgeCutoffDate = LocalDate.of(2025, 1, 1);
-//        final var pricePerMillionInputTokens = 1.25;
-//        final var pricePerMillionOutputTokens = 10.00;
-//
-//        return new Llm(
-//            "gemini-2.5-pro",
-//            PROVIDER,
-//            chatModel,
-//            OPTIONS_CONVERTER,
-//            knowledgeCutoffDate,
-//            List.of(),
-//            new PerTokenPricingModel(pricePerMillionInputTokens, pricePerMillionOutputTokens)
-//        );
-//    }
-//
-//    @Bean
-//    public Llm gemini25Flash() {
-//        final var knowledgeCutoffDate = LocalDate.of(2025, 1, 1);
-//        final var pricePerMillionInputTokens = 0.30;
-//        final var pricePerMillionOutputTokens = 2.50;
-//
-//        return new Llm(
-//            "gemini-2.5-flash",
-//            PROVIDER,
-//            chatModel,
-//            OPTIONS_CONVERTER,
-//            knowledgeCutoffDate,
-//            List.of(),
-//            new PerTokenPricingModel(pricePerMillionInputTokens, pricePerMillionOutputTokens)
-//        );
-//    }
-//
-//    @Bean
-//    public Llm gemini25FlashLite() {
-//        final var knowledgeCutoffDate = LocalDate.of(2025, 1, 1);
-//        final var pricePerMillionInputTokens = 0.10;
-//        final var pricePerMillionOutputTokens = 0.40;
-//
-//        return new Llm(
-//            "gemini-2.5-flash-lite",
-//            PROVIDER,
-//            chatModel,
-//            OPTIONS_CONVERTER,
-//            knowledgeCutoffDate,
-//            List.of(),
-//            new PerTokenPricingModel(pricePerMillionInputTokens, pricePerMillionOutputTokens)
-//        );
-//    }
+
+    @Bean
+    public Llm gemini25Pro() {
+        final var knowledgeCutoffDate = LocalDate.of(2025, 1, 1);
+        final var pricePerMillionInputTokens = 1.25;
+        final var pricePerMillionOutputTokens = 10.00;
+
+        return new Llm(
+            "gemini-2.5-pro",
+            PROVIDER,
+            chatModel,
+            OPTIONS_CONVERTER,
+            knowledgeCutoffDate,
+            List.of(),
+            new PerTokenPricingModel(pricePerMillionInputTokens, pricePerMillionOutputTokens)
+        );
+    }
+
+    public Llm gemini25Flash() {
+        final var knowledgeCutoffDate = LocalDate.of(2025, 1, 1);
+        final var pricePerMillionInputTokens = 0.30;
+        final var pricePerMillionOutputTokens = 2.50;
+
+        return new Llm(
+            "gemini-2.5-flash",
+            PROVIDER,
+            chatModel,
+            OPTIONS_CONVERTER,
+            knowledgeCutoffDate,
+            List.of(),
+            new PerTokenPricingModel(pricePerMillionInputTokens, pricePerMillionOutputTokens)
+        );
+    }
+
+    public Llm gemini25FlashLite() {
+        final var knowledgeCutoffDate = LocalDate.of(2025, 1, 1);
+        final var pricePerMillionInputTokens = 0.10;
+        final var pricePerMillionOutputTokens = 0.40;
+
+        return new Llm(
+            "gemini-2.5-flash-lite",
+            PROVIDER,
+            chatModel,
+            OPTIONS_CONVERTER,
+            knowledgeCutoffDate,
+            List.of(),
+            new PerTokenPricingModel(pricePerMillionInputTokens, pricePerMillionOutputTokens)
+        );
+    }
 
     // Converts Embabel's LlmOptions to Spring AI's ToolCallingChatOptions for Vertex AI.
     private static final class VertexAiOptionsConverter implements OptionsConverter<ToolCallingChatOptions> {
