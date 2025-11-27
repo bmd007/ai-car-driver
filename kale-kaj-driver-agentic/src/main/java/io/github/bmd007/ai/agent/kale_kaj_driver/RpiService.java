@@ -29,7 +29,7 @@ public class RpiService {
             .build();
     }
 
-    @Tool(description = "Thought the robot in the specified direction")
+    @Tool(description = "Move the robot in the specified direction")
     public void moveTheRobot(MOVE_DIRECTION direction) {
         client.post()
             .uri("/move?command=" + direction.name())
@@ -53,14 +53,7 @@ public class RpiService {
         FORWARD,
         BACKWARD,
         LEFT,
-        RIGHT;
-
-        public static boolean isMoveCommand(String command) {
-            return command != null && (command.equals(FORWARD.name()) ||
-                command.equals(BACKWARD.name()) ||
-                command.equals(LEFT.name()) ||
-                command.equals(RIGHT.name()));
-        }
+        RIGHT
     }
 }
 

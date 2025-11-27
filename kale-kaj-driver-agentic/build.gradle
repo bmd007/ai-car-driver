@@ -29,17 +29,6 @@ repositories {
             releasesOnly()
         }
     }
-    maven {
-        name = 'embabel-snapshots'
-        url = 'https://repo.embabel.com/artifactory/libs-snapshot'
-        mavenContent {
-            snapshotsOnly()
-        }
-    }
-    maven {
-        name = 'Spring Milestones'
-        url = 'https://repo.spring.io/milestone'
-    }
 }
 
 ext {
@@ -49,9 +38,8 @@ ext {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-//    implementation 'com.embabel.agent:embabel-agent-starter:0.1.3'
-    implementation 'com.embabel.agent:embabel-agent-starter-openai:0.1.3'
-//    implementation 'com.embabel.agent:embabel-agent-starter-ollama:0.1.3'
+    implementation 'com.embabel.agent:embabel-agent-starter:0.3.0'
+    implementation 'org.springframework.ai:spring-ai-starter-model-vertex-ai-gemini'
     compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	annotationProcessor 'org.projectlombok:lombok'
