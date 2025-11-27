@@ -8,14 +8,14 @@ spring:
           location: europe-north1
           chat:
             options:
-              model: gemini-2.5-pro
-#          transport: rest
-#  main:
-#    banner-mode: off
-#  http:
-#    client:
-#      factory: jdk
+              model: gemini-3.0-pro
+          transport: rest
+  main:
+    banner-mode: off
+  http:
+    client:
+      factory: jdk
 
 embabel:
   models:
-    default-llm: gemini-2.5-pro
+    default-llm: gemini-3.0-pro
