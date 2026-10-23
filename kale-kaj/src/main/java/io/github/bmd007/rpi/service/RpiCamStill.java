@@ -2,7 +2,11 @@ package io.github.bmd007.rpi.service;
 
 import reactor.core.publisher.Mono;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,7 +29,24 @@ public class RpiCamStill {
     private boolean verbose = false;
 
     /**
+     * Test if rpicam-still is available on the system.
+     *
+     * @return true if rpicam-still command is available
+     */
+    public static boolean isAvailable() {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("rpicam-still", "--version");
+            Process process = pb.start();
+            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
+            return finished && process.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Set output directory for captured images.
+     *
      * @param outputDir Directory path to save images
      * @return this instance for method chaining
      */
@@ -36,7 +57,8 @@ public class RpiCamStill {
 
     /**
      * Set image dimensions.
-     * @param width Image width in pixels
+     *
+     * @param width  Image width in pixels
      * @param height Image height in pixels
      * @return this instance for method chaining
      */
@@ -48,6 +70,7 @@ public class RpiCamStill {
 
     /**
      * Set capture timeout in milliseconds.
+     *
      * @param timeoutMs Timeout in milliseconds
      * @return this instance for method chaining
      */
@@ -58,6 +81,7 @@ public class RpiCamStill {
 
     /**
      * Set image encoding format.
+     *
      * @param encoding Image format (jpg, png, bmp, etc.)
      * @return this instance for method chaining
      */
@@ -68,6 +92,7 @@ public class RpiCamStill {
 
     /**
      * Set JPEG quality (0-100).
+     *
      * @param quality Quality level for JPEG compression
      * @return this instance for method chaining
      */
@@ -78,6 +103,7 @@ public class RpiCamStill {
 
     /**
      * Enable or disable verbose output.
+     *
      * @param verbose Enable verbose logging
      * @return this instance for method chaining
      */
@@ -96,6 +122,7 @@ public class RpiCamStill {
 
     /**
      * Capture a still image and save to file.
+     *
      * @param filename Name of the output file (without path)
      * @return File object representing the captured image
      * @throws IOException if capture fails or file cannot be created
@@ -159,6 +186,7 @@ public class RpiCamStill {
 
     /**
      * Capture image directly to InputStream (useful for streaming).
+     *
      * @return InputStream containing the image data
      * @throws IOException if capture fails
      */
@@ -178,6 +206,7 @@ public class RpiCamStill {
 
     /**
      * Build the rpicam-still command with current settings.
+     *
      * @param outputPath Output file path or "-" for stdout
      * @return List of command arguments
      */
@@ -218,21 +247,6 @@ public class RpiCamStill {
         command.add("--nopreview");
 
         return command;
-    }
-
-    /**
-     * Test if rpicam-still is available on the system.
-     * @return true if rpicam-still command is available
-     */
-    public static boolean isAvailable() {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("rpicam-still", "--version");
-            Process process = pb.start();
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-            return finished && process.exitValue() == 0;
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     /**

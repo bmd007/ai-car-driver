@@ -1,7 +1,6 @@
 package io.github.bmd007.rpi;
 
 import io.github.bmd007.rpi.service.MotorService;
-import io.github.bmd007.rpi.service.RpiCamStill;
 import io.github.bmd007.rpi.service.RpiCamVid;
 import io.github.bmd007.rpi.service.ServoService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -7,6 +7,7 @@ import com.pi4j.io.i2c.I2CProvider;
 
 public class PCA9685 {
 
+    public static final int PWM_FREQ = 50;
     private static final int MODE1 = 0x00;
     private static final int PRESCALE = 0xFE;
     private static final int LED0_ON_L = 0x06;
@@ -23,8 +24,6 @@ public class PCA9685 {
         this.device = provider.create(config);
         initialize(PWM_FREQ);
     }
-
-    public static final int PWM_FREQ = 50;
 
     private void initialize(int freq) throws InterruptedException {
         device.writeRegister(MODE1, (byte) 0x00);

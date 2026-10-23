@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$(dirname "$0")" || exit 1
+
 PASSWORD="$1"
 JAR_PATH="deployment/kale-kaj.jar"
 DEST="pi@192.168.1.165:/home/pi/ai-car-driver/kale-kaj/deployment"
@@ -26,12 +28,12 @@ sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "mkdir -
   exit 4
 }
 
-sshpass -p "$PASSWORD" scp "$JAR_PATH" "$DEST" || {
+sshpass -p "$PASSWORD" scp deployment/* "$DEST/" || {
   echo "Error: SCP file transfer failed."
   exit 5
 }
 
-echo "JAR successfully copied to Raspberry Pi."
+echo "Deployment folder successfully copied to Raspberry Pi."
 
 sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "cd /home/pi/ai-car-driver/kale-kaj/deployment && sh service-enabler.sh" || {
   echo "Error: Unable to connect to Raspberry Pi or create directory."

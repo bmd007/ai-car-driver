@@ -2,7 +2,11 @@ package io.github.bmd007.rpi.service;
 
 import reactor.core.publisher.Mono;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,6 +27,17 @@ public class RpiCamVid {
     private String encoding = "h264";
     private int framerate = 30;
     private boolean verbose = false;
+
+    public static boolean isAvailable() {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("rpicam-vid", "--version");
+            Process process = pb.start();
+            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
+            return finished && process.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     public RpiCamVid setOutputDir(String outputDir) {
         this.outputDir = outputDir;
@@ -153,17 +168,6 @@ public class RpiCamVid {
         command.add("--nopreview");
 
         return command;
-    }
-
-    public static boolean isAvailable() {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("rpicam-vid", "--version");
-            Process process = pb.start();
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-            return finished && process.exitValue() == 0;
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     private static class ProcessInputStream extends InputStream {
