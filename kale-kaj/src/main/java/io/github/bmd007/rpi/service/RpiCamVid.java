@@ -14,30 +14,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Simple Java API wrapper for rpicam-vid command.
- * Provides basic functionality for capturing video on Raspberry Pi.
- */
 public class RpiCamVid {
 
     private String outputDir = "/tmp";
     private int width = 640;
     private int height = 480;
-    private int timeout = 10000; // 10 seconds default
+    private int timeout = 10000;
     private String encoding = "h264";
     private int framerate = 30;
     private boolean verbose = false;
-
-    public static boolean isAvailable() {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("rpicam-vid", "--version");
-            Process process = pb.start();
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-            return finished && process.exitValue() == 0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
     public RpiCamVid setOutputDir(String outputDir) {
         this.outputDir = outputDir;
@@ -127,10 +112,10 @@ public class RpiCamVid {
     }
 
     public InputStream streamVideo() throws IOException {
-        List<String> command = buildCommand("-"); // Output to stdout
+        List<String> command = buildCommand("-");
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(false);
+        pb.redirectError(ProcessBuilder.Redirect.INHERIT);
 
         try {
             Process process = pb.start();

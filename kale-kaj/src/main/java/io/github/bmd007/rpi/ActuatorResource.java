@@ -17,28 +17,33 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.github.bmd007.rpi.service.MotorService.MovementCommand;
 
-
 @RestController
 @SpringBootApplication
 public class ActuatorResource {
 
+    private static final byte[] FRAME_HEADER = "--frame\r\nContent-Type: image/jpeg\r\n\r\n".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] FRAME_TRAILER = "\r\n".getBytes(StandardCharsets.US_ASCII);
+    private static final Duration CAMERA_RESTART_DELAY = Duration.ofSeconds(2);
+
     private static final Sinks.Many<byte[]> SINK = Sinks.many()
         .multicast()
-        .onBackpressureBuffer(1, false);
+        .directBestEffort();
 
     private static final AtomicReference<byte[]> LATEST_FRAME = new AtomicReference<>();
 
     private static final RpiCamVid VIDEO_CAMERA = new RpiCamVid()
-        .setDimensions(640, 480) // Lower resolution = faster processing
-        .setTimeout(Integer.MAX_VALUE)
+        .setDimensions(640, 480)
+        .setTimeout(0)
         .setEncoding("mjpeg")
-        .setFramerate(30)
+        .setFramerate(15)
         .setVerbose(false);
 
     private final MotorService motorService;
@@ -51,62 +56,72 @@ public class ActuatorResource {
 
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
-        if (!RpiCamVid.isAvailable()) {
-            System.err.println("rpicam-vid not available or unsupported hardware version.");
-            return;
-        }
         Schedulers.boundedElastic()
-            .schedule(() -> {
-                try (InputStream videoStream = VIDEO_CAMERA.streamVideo()) {
-                    byte[] buffer = new byte[1024 * 64];
-                    ByteArrayOutputStream frameBuffer = new ByteArrayOutputStream();
-                    int bytesRead;
-                    boolean inFrame = false;
-                    while ((bytesRead = videoStream.read(buffer)) != -1) {
-                        for (int i = 0; i < bytesRead; i++) {
-                            if (!inFrame && buffer[i] == (byte) 0xFF && i + 1 < bytesRead && buffer[i + 1] == (byte) 0xD8) {
-                                frameBuffer.reset();
-                                inFrame = true;
-                            }
-                            if (inFrame) {
-                                frameBuffer.write(buffer[i]);
-                                if (buffer[i] == (byte) 0xFF && i + 1 < bytesRead && buffer[i + 1] == (byte) 0xD9) {
-                                    frameBuffer.write(buffer[i + 1]);
-                                    i++;
-                                    inFrame = false;
-                                    byte[] imageBytes = frameBuffer.toByteArray();
+            .schedule(ActuatorResource::streamFramesForever);
+    }
 
-                                    // Store the latest frame for capture-image endpoint
-                                    LATEST_FRAME.set(imageBytes);
+    private static void streamFramesForever() {
+        while (!Thread.currentThread().isInterrupted()) {
+            try (var videoStream = VIDEO_CAMERA.streamVideo()) {
+                readFrames(videoStream);
+                System.err.println("Video stream ended, restarting camera.");
+            } catch (Exception e) {
+                System.err.println("Video stream error, restarting camera: " + e.getMessage());
+                //todo report the error to telegram
+            }
+            try {
+                Thread.sleep(CAMERA_RESTART_DELAY);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
 
-                                    String header = "--frame\r\nContent-Type: image/jpeg\r\n\r\n";
-
-                                    SINK.tryEmitNext(header.getBytes());
-                                    SINK.tryEmitNext(imageBytes);
-                                    SINK.tryEmitNext("\r\n".getBytes());
-
-                                    frameBuffer.reset();
-                                }
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("Video stream error: " + e.getMessage());
-                    //todo report the error to telegram
-//                    SINK.tryEmitComplete();
+    private static void readFrames(InputStream videoStream) throws IOException {
+        var buffer = new byte[64 * 1024];
+        var frame = new ByteArrayOutputStream();
+        var inFrame = false;
+        var previous = 0;
+        int bytesRead;
+        while ((bytesRead = videoStream.read(buffer)) != -1) {
+            for (var i = 0; i < bytesRead; i++) {
+                var current = buffer[i] & 0xFF;
+                if (previous == 0xFF && current == 0xD8) {
+                    frame.reset();
+                    frame.write(0xFF);
+                    inFrame = true;
                 }
-            });
+                if (inFrame) {
+                    frame.write(current);
+                    if (previous == 0xFF && current == 0xD9) {
+                        publish(frame.toByteArray());
+                        inFrame = false;
+                    }
+                }
+                previous = current;
+            }
+        }
+    }
+
+    private static void publish(byte[] image) {
+        LATEST_FRAME.set(image);
+        var part = new ByteArrayOutputStream(FRAME_HEADER.length + image.length + FRAME_TRAILER.length);
+        part.writeBytes(FRAME_HEADER);
+        part.writeBytes(image);
+        part.writeBytes(FRAME_TRAILER);
+        SINK.tryEmitNext(part.toByteArray());
     }
 
     @GetMapping(value = "v3/video-stream", produces = "multipart/x-mixed-replace; boundary=frame")
     public Flux<byte[]> videoStream() {
-        return SINK.asFlux();
+        return SINK.asFlux()
+            .onBackpressureLatest();
     }
 
     @GetMapping(value = "v3/capture-image", produces = MediaType.IMAGE_JPEG_VALUE)
     public Mono<byte[]> captureImage() {
         return Mono.defer(() -> {
-                byte[] frame = LATEST_FRAME.get();
+                var frame = LATEST_FRAME.get();
                 if (frame == null) {
                     return Mono.error(new IllegalStateException("No video frame available yet. Please wait for video stream to start."));
                 }

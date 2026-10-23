@@ -35,7 +35,9 @@ sshpass -p "$PASSWORD" scp deployment/* "$DEST/" || {
 
 echo "Deployment folder successfully copied to Raspberry Pi."
 
-sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "cd /home/pi/ai-car-driver/kale-kaj/deployment && sh service-enabler.sh" || {
-  echo "Error: Unable to connect to Raspberry Pi or create directory."
-  exit 4
+sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no pi@192.168.1.165 "cd /home/pi/ai-car-driver/kale-kaj/deployment && echo '$PASSWORD' | sudo -S -p '' sh service-enabler.sh" || {
+  echo "Error: Unable to restart kale-kaj service."
+  exit 6
 }
+
+echo "Follow logs with: ssh pi@192.168.1.165 journalctl -u kale-kaj -f"

@@ -5,4 +5,4 @@ sudo systemctl daemon-reload
 sudo systemctl enable kale-kaj
 sudo systemctl start kale-kaj
 
-journalctl -u kale-kaj -f
+systemctl status kale-kaj --no-pager | head -5
