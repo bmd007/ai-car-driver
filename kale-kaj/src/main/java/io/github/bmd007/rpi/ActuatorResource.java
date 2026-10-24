@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.github.bmd007.rpi.service.MotorService.MovementCommand;
@@ -32,12 +33,16 @@ public class ActuatorResource {
     private static final byte[] FRAME_HEADER = "--frame\r\nContent-Type: image/jpeg\r\n\r\n".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] FRAME_TRAILER = "\r\n".getBytes(StandardCharsets.US_ASCII);
     private static final Duration CAMERA_RESTART_DELAY = Duration.ofSeconds(2);
+    private static final Duration FRAME_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration WATCHDOG_INTERVAL = Duration.ofSeconds(2);
 
     private static final Sinks.Many<byte[]> SINK = Sinks.many()
         .multicast()
         .directBestEffort();
 
     private static final AtomicReference<byte[]> LATEST_FRAME = new AtomicReference<>();
+    private static final AtomicReference<InputStream> CURRENT_STREAM = new AtomicReference<>();
+    private static final AtomicLong LAST_FRAME_AT = new AtomicLong();
 
     private static final RpiCamVid VIDEO_CAMERA = new RpiCamVid()
         .setDimensions(640, 480)
@@ -58,16 +63,36 @@ public class ActuatorResource {
     public void start() {
         Schedulers.boundedElastic()
             .schedule(ActuatorResource::streamFramesForever);
+        Flux.interval(WATCHDOG_INTERVAL)
+            .subscribe(tick -> restartStalledCamera());
+    }
+
+    private static void restartStalledCamera() {
+        var stream = CURRENT_STREAM.get();
+        var sinceLastFrame = Duration.ofNanos(System.nanoTime() - LAST_FRAME_AT.get());
+        if (stream == null || sinceLastFrame.compareTo(FRAME_TIMEOUT) < 0) {
+            return;
+        }
+        System.err.println("No video frame for " + sinceLastFrame.toSeconds() + "s, killing camera process.");
+        try {
+            stream.close();
+        } catch (IOException e) {
+            System.err.println("Failed to close stalled video stream: " + e.getMessage());
+        }
     }
 
     private static void streamFramesForever() {
         while (!Thread.currentThread().isInterrupted()) {
             try (var videoStream = VIDEO_CAMERA.streamVideo()) {
+                LAST_FRAME_AT.set(System.nanoTime());
+                CURRENT_STREAM.set(videoStream);
                 readFrames(videoStream);
                 System.err.println("Video stream ended, restarting camera.");
             } catch (Exception e) {
                 System.err.println("Video stream error, restarting camera: " + e.getMessage());
                 //todo report the error to telegram
+            } finally {
+                CURRENT_STREAM.set(null);
             }
             try {
                 Thread.sleep(CAMERA_RESTART_DELAY);
@@ -104,6 +129,7 @@ public class ActuatorResource {
     }
 
     private static void publish(byte[] image) {
+        LAST_FRAME_AT.set(System.nanoTime());
         LATEST_FRAME.set(image);
         var part = new ByteArrayOutputStream(FRAME_HEADER.length + image.length + FRAME_TRAILER.length);
         part.writeBytes(FRAME_HEADER);

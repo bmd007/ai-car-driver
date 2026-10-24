@@ -181,13 +181,8 @@ public class RpiCamVid {
 
         @Override
         public void close() throws IOException {
-            try {
-                inputStream.close();
-            } finally {
-                if (process.isAlive()) {
-                    process.destroyForcibly();
-                }
-            }
+            process.destroyForcibly();
+            inputStream.close();
         }
     }
 }
