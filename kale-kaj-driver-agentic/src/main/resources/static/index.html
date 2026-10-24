@@ -34,8 +34,8 @@
                 🔄 Refresh Video
             </button>
             <h2 style="color: #4e9a06; margin-bottom: 16px; font-family: 'Segoe UI', sans-serif;">🤖 Camera feed</h2>
-            <img id="video-stream3" src="http://192.168.1.165:8080/v3/video-stream"
-                 style="max-width: 600px; max-height: 600px;" alt="Live Video Stream">
+            <video id="video-stream3" autoplay muted playsinline
+                   style="max-width: 600px; max-height: 600px;"></video>
         </div>
         <div id="capture-panel"
              style="border: 8px solid #1e90ff; padding: 4px; background: #eaf4ff; display: flex; flex-direction: column; align-items: center; border-radius: 16px; box-shadow: 0 4px 24px rgba(30,144,255,0.12);">
@@ -78,7 +78,10 @@
     </div>
 </div>
 
+<script src="http://192.168.1.165:8080/jmuxer.min.js"></script>
+<script src="http://192.168.1.165:8080/kale-kaj-video.js"></script>
 <script>
+    const KALE_KAJ_URL = 'http://192.168.1.165:8080/';
     const chatOutput = document.getElementById('chat-output');
     const chatInput = document.getElementById('chat-input');
     const chatSend = document.getElementById('chat-send');
@@ -201,13 +204,7 @@
         if (e.key === 'Enter') chatSend.click();
     });
 
-    document.getElementById('video-stream3')
-        .addEventListener('error', function () {
-            setTimeout(function () {
-                const img = document.getElementById('video-stream3');
-                img.src = 'v3/video-stream?ts=' + Date.now();
-            }, 1000);
-        });
+    const kaleKajVideo = startKaleKajVideo(document.getElementById('video-stream3'), KALE_KAJ_URL);
 
     const captureBtn = document.getElementById('capture-btn');
     const capturedImage = document.getElementById('captured-image');
@@ -218,7 +215,7 @@
         captureLoading.style.display = 'block';
         capturedImage.style.display = 'none';
         try {
-            const response = await fetch('http://192.168.1.165:8080/v3/capture-image');
+            const response = await fetch(KALE_KAJ_URL + 'v3/capture-image');
             if (!response.ok) throw new Error('Failed to capture image');
             const blob = await response.blob();
             capturedImage.src = URL.createObjectURL(blob);
@@ -232,11 +229,7 @@
         }
     };
 
-    document.getElementById('video-refresh-btn').onclick = function () {
-        const img = document.getElementById('video-stream3');
-        // Add a timestamp to force reload
-        img.src = 'http://192.168.1.165:8080/v3/video-stream?ts=' + Date.now();
-    };
+    document.getElementById('video-refresh-btn').onclick = kaleKajVideo.restart;
 </script>
 
 </body>

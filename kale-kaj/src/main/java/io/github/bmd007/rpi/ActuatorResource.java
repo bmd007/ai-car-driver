@@ -1,5 +1,8 @@
 package io.github.bmd007.rpi;
 
+import io.github.bmd007.rpi.service.H264AccessUnitReader;
+import io.github.bmd007.rpi.service.H264AccessUnitReader.AccessUnit;
+import io.github.bmd007.rpi.service.KeyframeToJpeg;
 import io.github.bmd007.rpi.service.MotorService;
 import io.github.bmd007.rpi.service.RpiCamVid;
 import io.github.bmd007.rpi.service.ServoService;
@@ -16,11 +19,11 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.io.UncheckedIOException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -30,26 +33,29 @@ import static io.github.bmd007.rpi.service.MotorService.MovementCommand;
 @SpringBootApplication
 public class ActuatorResource {
 
-    private static final byte[] FRAME_HEADER = "--frame\r\nContent-Type: image/jpeg\r\n\r\n".getBytes(StandardCharsets.US_ASCII);
-    private static final byte[] FRAME_TRAILER = "\r\n".getBytes(StandardCharsets.US_ASCII);
     private static final Duration CAMERA_RESTART_DELAY = Duration.ofSeconds(2);
     private static final Duration FRAME_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration WATCHDOG_INTERVAL = Duration.ofSeconds(2);
 
-    private static final Sinks.Many<byte[]> SINK = Sinks.many()
+    private static final Sinks.Many<AccessUnit> SINK = Sinks.many()
         .multicast()
         .directBestEffort();
 
-    private static final AtomicReference<byte[]> LATEST_FRAME = new AtomicReference<>();
+    private static final AtomicReference<AccessUnit> LATEST_KEYFRAME = new AtomicReference<>();
+    private static final AtomicReference<Snapshot> LATEST_SNAPSHOT = new AtomicReference<>();
     private static final AtomicReference<InputStream> CURRENT_STREAM = new AtomicReference<>();
     private static final AtomicLong LAST_FRAME_AT = new AtomicLong();
 
     private static final RpiCamVid VIDEO_CAMERA = new RpiCamVid()
         .setDimensions(640, 480)
         .setTimeout(0)
-        .setEncoding("mjpeg")
+        .setEncoding("h264")
         .setFramerate(15)
+        .setBitrate(700_000)
         .setVerbose(false);
+
+    private record Snapshot(AccessUnit keyframe, byte[] jpeg) {
+    }
 
     private final MotorService motorService;
     private final ServoService servoService;
@@ -86,7 +92,7 @@ public class ActuatorResource {
             try (var videoStream = VIDEO_CAMERA.streamVideo()) {
                 LAST_FRAME_AT.set(System.nanoTime());
                 CURRENT_STREAM.set(videoStream);
-                readFrames(videoStream);
+                new H264AccessUnitReader(ActuatorResource::publish).read(videoStream);
                 System.err.println("Video stream ended, restarting camera.");
             } catch (Exception e) {
                 System.err.println("Video stream error, restarting camera: " + e.getMessage());
@@ -102,57 +108,48 @@ public class ActuatorResource {
         }
     }
 
-    private static void readFrames(InputStream videoStream) throws IOException {
-        var buffer = new byte[64 * 1024];
-        var frame = new ByteArrayOutputStream();
-        var inFrame = false;
-        var previous = 0;
-        int bytesRead;
-        while ((bytesRead = videoStream.read(buffer)) != -1) {
-            for (var i = 0; i < bytesRead; i++) {
-                var current = buffer[i] & 0xFF;
-                if (previous == 0xFF && current == 0xD8) {
-                    frame.reset();
-                    frame.write(0xFF);
-                    inFrame = true;
-                }
-                if (inFrame) {
-                    frame.write(current);
-                    if (previous == 0xFF && current == 0xD9) {
-                        publish(frame.toByteArray());
-                        inFrame = false;
-                    }
-                }
-                previous = current;
-            }
-        }
-    }
-
-    private static void publish(byte[] image) {
+    private static void publish(AccessUnit unit) {
         LAST_FRAME_AT.set(System.nanoTime());
-        LATEST_FRAME.set(image);
-        var part = new ByteArrayOutputStream(FRAME_HEADER.length + image.length + FRAME_TRAILER.length);
-        part.writeBytes(FRAME_HEADER);
-        part.writeBytes(image);
-        part.writeBytes(FRAME_TRAILER);
-        SINK.tryEmitNext(part.toByteArray());
+        if (unit.keyframe()) {
+            LATEST_KEYFRAME.set(unit);
+        }
+        SINK.tryEmitNext(unit);
     }
 
-    @GetMapping(value = "v3/video-stream", produces = "multipart/x-mixed-replace; boundary=frame")
-    public Flux<byte[]> videoStream() {
+    public static Flux<byte[]> h264Stream() {
+        var waitingForKeyframe = new AtomicBoolean(true);
         return SINK.asFlux()
-            .onBackpressureLatest();
+            .onBackpressureDrop(_ -> waitingForKeyframe.set(true))
+            .filter(unit -> {
+                if (unit.keyframe()) {
+                    waitingForKeyframe.set(false);
+                }
+                return !waitingForKeyframe.get();
+            })
+            .map(AccessUnit::data);
+    }
+
+    private static synchronized byte[] latestJpeg() {
+        var keyframe = LATEST_KEYFRAME.get();
+        if (keyframe == null) {
+            throw new IllegalStateException("No video frame available yet. Please wait for video stream to start.");
+        }
+        var snapshot = LATEST_SNAPSHOT.get();
+        if (snapshot != null && snapshot.keyframe() == keyframe) {
+            return snapshot.jpeg();
+        }
+        try {
+            var jpeg = KeyframeToJpeg.convert(keyframe.data());
+            LATEST_SNAPSHOT.set(new Snapshot(keyframe, jpeg));
+            return jpeg;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @GetMapping(value = "v3/capture-image", produces = MediaType.IMAGE_JPEG_VALUE)
     public Mono<byte[]> captureImage() {
-        return Mono.defer(() -> {
-                var frame = LATEST_FRAME.get();
-                if (frame == null) {
-                    return Mono.error(new IllegalStateException("No video frame available yet. Please wait for video stream to start."));
-                }
-                return Mono.just(frame);
-            })
+        return Mono.fromCallable(ActuatorResource::latestJpeg)
             .timeout(Duration.ofSeconds(5))
             .subscribeOn(Schedulers.boundedElastic());
     }

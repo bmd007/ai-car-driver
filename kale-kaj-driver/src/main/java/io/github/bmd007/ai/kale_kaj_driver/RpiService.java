@@ -6,10 +6,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.Base64;
 
 @Slf4j
 @Service
@@ -34,15 +31,6 @@ public class RpiService {
             .uri("/move?command=" + direction.name())
             .retrieve()
             .bodyToMono(Void.class);
-    }
-
-    public Flux<String> videoFeed() {
-        return client.get()
-            .uri("/v3/video-stream")
-            .retrieve()
-            .bodyToFlux(byte[].class)
-            .map(Base64.getEncoder()::encodeToString)
-            .take(10);
     }
 
     @Tool(description = "Get a picture from the robot front first person camera, as a base64 string representing byte arrays representing JPEG image")

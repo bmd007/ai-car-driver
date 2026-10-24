@@ -22,6 +22,7 @@ public class RpiCamVid {
     private int timeout = 10000;
     private String encoding = "h264";
     private int framerate = 30;
+    private int bitrate = 0;
     private boolean verbose = false;
 
     public RpiCamVid setOutputDir(String outputDir) {
@@ -47,6 +48,11 @@ public class RpiCamVid {
 
     public RpiCamVid setFramerate(int framerate) {
         this.framerate = Math.max(1, framerate);
+        return this;
+    }
+
+    public RpiCamVid setBitrate(int bitsPerSecond) {
+        this.bitrate = Math.max(0, bitsPerSecond);
         return this;
     }
 
@@ -145,6 +151,20 @@ public class RpiCamVid {
 
         command.add("--codec");
         command.add(encoding);
+
+        if ("h264".equals(encoding)) {
+            command.add("--profile");
+            command.add("baseline");
+            command.add("--inline");
+            command.add("--intra");
+            command.add(String.valueOf(framerate));
+            command.add("--flush");
+        }
+
+        if (bitrate > 0) {
+            command.add("--bitrate");
+            command.add(String.valueOf(bitrate));
+        }
 
         if (verbose) {
             command.add("--verbose");
