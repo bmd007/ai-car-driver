@@ -20,12 +20,13 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'com.pi4j:pi4j-core:4.0.2'
-    implementation 'com.pi4j:pi4j-plugin-raspberrypi:4.0.2'
-    implementation 'com.pi4j:pi4j-plugin-gpiod:4.0.2'
-    implementation 'com.pi4j:pi4j-plugin-linuxfs:4.0.2'
+    implementation 'com.pi4j:pi4j-plugin-ffm:4.0.2'
 }
 
 bootJar {
     archiveFileName = 'deployment/kale-kaj.jar'
     destinationDirectory = file(rootDir)
+    manifest {
+        attributes 'Enable-Native-Access': 'ALL-UNNAMED'
+    }
 }
