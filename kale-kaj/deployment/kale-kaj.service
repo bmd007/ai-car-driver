@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-ExecStart=/bin/bash -c 'pitunnel --host=http://192.168.1.165 --port=8080 --name=kalekaj --http --persist & exec java -jar kale-kaj.jar'
+ExecStart=java -jar kale-kaj.jar
 WorkingDirectory=/home/pi/ai-car-driver/kale-kaj/deployment
 #Restart=on-failure
 
