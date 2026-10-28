@@ -38,7 +38,7 @@ ext {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'com.embabel.agent:embabel-agent-starter:1.5.3'
+    implementation 'com.embabel.agent:embabel-agent-starter:1.5.4'
     implementation 'org.springframework.ai:spring-ai-starter-model-vertex-ai-gemini'
     compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
